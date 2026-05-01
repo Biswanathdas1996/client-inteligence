@@ -1,6 +1,7 @@
 import { Router, type IRouter } from "express";
+import OpenAI from "openai";
 import { GenerateResearchBody } from "@workspace/api-zod";
-import { openai } from "@workspace/integrations-openai-ai-server";
+import { openai as defaultOpenai } from "@workspace/integrations-openai-ai-server";
 
 const router: IRouter = Router();
 
@@ -41,6 +42,63 @@ const RESPONSE_SCHEMA_HINT = `Return JSON shaped as:
   "assumptions": string[] (call out any data limitations or assumptions made)
 }`;
 
+function firstHeader(value: string | string[] | undefined): string | undefined {
+  if (!value) return undefined;
+  if (Array.isArray(value)) return value[0]?.trim() || undefined;
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : undefined;
+}
+
+interface PerplexityCitation {
+  title?: string;
+  url?: string;
+}
+
+async function fetchPerplexityContext(
+  apiKey: string,
+  query: string,
+): Promise<{ text: string; citations: PerplexityCitation[] } | null> {
+  try {
+    const res = await fetch("https://api.perplexity.ai/chat/completions", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "sonar",
+        messages: [
+          {
+            role: "system",
+            content:
+              "You are a research assistant for PwC consultants. Return concise, factual, source-grounded findings with the latest available data. Use bullet points.",
+          },
+          { role: "user", content: query },
+        ],
+        temperature: 0.2,
+      }),
+    });
+
+    if (!res.ok) {
+      return null;
+    }
+    const data = (await res.json()) as {
+      choices?: Array<{ message?: { content?: string } }>;
+      citations?: string[];
+      search_results?: Array<{ title?: string; url?: string }>;
+    };
+    const text = data.choices?.[0]?.message?.content?.trim() ?? "";
+    const citations: PerplexityCitation[] =
+      data.search_results?.map((r) => ({ title: r.title, url: r.url })) ??
+      data.citations?.map((url) => ({ url })) ??
+      [];
+    if (!text) return null;
+    return { text, citations };
+  } catch {
+    return null;
+  }
+}
+
 router.post("/research", async (req, res) => {
   const parsed = GenerateResearchBody.safeParse(req.body);
   if (!parsed.success) {
@@ -49,10 +107,51 @@ router.post("/research", async (req, res) => {
   }
   const input = parsed.data;
 
+  const pwcKey = firstHeader(req.headers["x-pwc-genai-key"]);
+  const pwcBaseUrl = firstHeader(req.headers["x-pwc-genai-base-url"]);
+  const pwcModelOverride = firstHeader(req.headers["x-pwc-genai-model"]);
+  const perplexityKey = firstHeader(req.headers["x-perplexity-key"]);
+
+  const client: OpenAI = pwcKey
+    ? new OpenAI({
+        apiKey: pwcKey,
+        baseURL: pwcBaseUrl || undefined,
+      })
+    : defaultOpenai;
+
+  const model = pwcModelOverride || "gpt-5.4";
+
   const kbBlock =
     input.knowledgeBase && input.knowledgeBase.length > 0
       ? `User-provided AI Solutions Knowledge Base (${input.knowledgeBase.length} rows):\n${JSON.stringify(input.knowledgeBase, null, 2)}`
       : "No Knowledge Base was provided. Use industry-standard AI solution patterns and label all solutions as source=\"external\".";
+
+  let liveResearchBlock = "No live web research was performed for this report.";
+  if (perplexityKey) {
+    const query = `Provide the latest verifiable information about ${input.companyName} (${input.country}) relevant to a strategic consulting brief. Cover:
+1. Recent financial performance (latest fiscal year and quarter — revenue, growth, profit/margin, guidance).
+2. Recent strategic initiatives, M&A, restructurings, leadership changes (last 12-18 months).
+3. Key direct peers/competitors in ${input.country} with size and positioning notes.
+4. Recent signals related to: ${input.topics.join(", ")}.
+Cite sources with URLs.`;
+    const ctx = await fetchPerplexityContext(perplexityKey, query);
+    if (ctx) {
+      const sources =
+        ctx.citations.length > 0
+          ? `\n\nSources:\n${ctx.citations
+              .slice(0, 12)
+              .map(
+                (c, i) =>
+                  `[${i + 1}] ${c.title ? `${c.title} — ` : ""}${c.url ?? ""}`,
+              )
+              .join("\n")}`
+          : "";
+      liveResearchBlock = `Live web research from Perplexity (use as ground truth where it conflicts with prior knowledge):\n${ctx.text}${sources}`;
+    } else {
+      liveResearchBlock =
+        "Live web research was attempted via Perplexity but failed; rely on the model's prior knowledge and flag this in assumptions.";
+    }
+  }
 
   const userPrompt = `Generate a client intelligence and pitch report.
 
@@ -61,6 +160,8 @@ Inputs:
 - Country / Geography: ${input.country}
 - Buyer Persona: ${input.persona ?? "Not specified"}
 - Topics of Interest: ${input.topics.join(", ")}
+
+${liveResearchBlock}
 
 ${kbBlock}
 
@@ -74,8 +175,8 @@ Constraints:
 - Output JSON ONLY.`;
 
   try {
-    const completion = await openai.chat.completions.create({
-      model: "gpt-5.4",
+    const completion = await client.chat.completions.create({
+      model,
       max_completion_tokens: 8192,
       response_format: { type: "json_object" },
       messages: [
@@ -105,9 +206,13 @@ Constraints:
     res.json(finalReport);
   } catch (err) {
     req.log.error({ err }, "Failed to generate research report");
-    res
-      .status(500)
-      .json({ error: "Failed to generate research report. Please try again." });
+    const message =
+      err instanceof Error ? err.message : "Failed to generate research report";
+    res.status(500).json({
+      error: pwcKey
+        ? `Failed to generate report using the configured PwC Gen AI credentials: ${message}`
+        : "Failed to generate research report. Please try again.",
+    });
   }
 });
 

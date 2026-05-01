@@ -2,9 +2,12 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { FileUp, Loader2, Play, AlertCircle, CheckCircle2 } from "lucide-react";
+import { Link } from "wouter";
 import { useGenerateResearch, KbSolution } from "@workspace/api-client-react";
 import { parseKbFile } from "@/lib/file-parser";
 import { formSchema, FormValues } from "@/lib/schemas";
+import { buildCredentialHeaders } from "@/lib/settings";
+import { useSettingsStatus } from "@/hooks/use-settings";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -42,7 +45,10 @@ interface ResearchFormProps {
 
 export function ResearchForm({ onSuccess }: ResearchFormProps) {
   const { toast } = useToast();
-  const generateResearch = useGenerateResearch();
+  const credStatus = useSettingsStatus();
+  const generateResearch = useGenerateResearch({
+    request: { headers: buildCredentialHeaders() },
+  });
   
   const [kbSolutions, setKbSolutions] = useState<KbSolution[]>([]);
   const [fileName, setFileName] = useState<string | null>(null);
@@ -262,9 +268,29 @@ export function ResearchForm({ onSuccess }: ResearchFormProps) {
           )}
         </div>
 
+        {!credStatus.pwcGenAiConfigured && (
+          <div className="mt-8 border border-[#E5E5E5] bg-[#FAFAFA] p-4 text-xs text-[#696969] leading-relaxed">
+            <div className="flex items-center gap-2 text-[#2D2D2D] font-semibold mb-1">
+              <AlertCircle className="h-4 w-4 text-[#DC6900]" />
+              No PwC Gen AI key configured
+            </div>
+            <p>
+              Reports will be generated through the workspace default model.{" "}
+              <Link
+                href="/settings"
+                className="text-[#DC6900] font-semibold hover:underline"
+              >
+                Add PwC and Perplexity credentials
+              </Link>{" "}
+              to route inference through approved infrastructure and enrich the
+              report with live web research.
+            </p>
+          </div>
+        )}
+
         <Button 
           type="submit" 
-          className="w-full rounded-none bg-[#DC6900] hover:bg-[#c25d00] text-white h-12 font-bold tracking-wide mt-8"
+          className="w-full rounded-none bg-[#DC6900] hover:bg-[#c25d00] text-white h-12 font-bold tracking-wide mt-4"
           disabled={generateResearch.isPending}
         >
           {generateResearch.isPending ? (
