@@ -112,14 +112,20 @@ router.post("/research", async (req, res) => {
   const pwcModelOverride = firstHeader(req.headers["x-pwc-genai-model"]);
   const perplexityKey = firstHeader(req.headers["x-perplexity-key"]);
 
+  const PWC_DEFAULT_BASE_URL = "https://genai-sharedservice-americas.pwc.com";
+  const PWC_DEFAULT_MODEL = "vertex_ai.gemini-2.5-flash-image";
+
   const client: OpenAI = pwcKey
     ? new OpenAI({
         apiKey: pwcKey,
-        baseURL: pwcBaseUrl || undefined,
+        baseURL: pwcBaseUrl || PWC_DEFAULT_BASE_URL,
+        defaultHeaders: {
+          "x-api-key": pwcKey,
+        },
       })
     : defaultOpenai;
 
-  const model = pwcModelOverride || "gpt-4o";
+  const model = pwcModelOverride || (pwcKey ? PWC_DEFAULT_MODEL : "gpt-4o");
 
   const kbBlock =
     input.knowledgeBase && input.knowledgeBase.length > 0

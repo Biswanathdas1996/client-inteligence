@@ -241,16 +241,16 @@ export default function Settings() {
               <PlainField
                 id="pwc-base-url"
                 label="API Base URL (optional)"
-                placeholder="https://genai.pwc.com/v1"
-                hint="OpenAI-compatible endpoint. Leave blank to use the workspace default."
+                placeholder="https://genai-sharedservice-americas.pwc.com"
+                hint="OpenAI-compatible endpoint. Leave blank to use the PwC Americas shared service endpoint automatically."
                 value={form.pwcGenAiBaseUrl}
                 onChange={(v) => update({ pwcGenAiBaseUrl: v })}
               />
               <PlainField
                 id="pwc-model"
                 label="Model (optional)"
-                placeholder="gpt-5.4"
-                hint="Override the default reasoning model. Must be available on the configured endpoint."
+                placeholder="vertex_ai.gemini-2.5-flash-image"
+                hint="Override the default model. Leave blank to use vertex_ai.gemini-2.5-flash-image automatically when a PwC API key is set."
                 value={form.pwcGenAiModel}
                 onChange={(v) => update({ pwcGenAiModel: v })}
               />
