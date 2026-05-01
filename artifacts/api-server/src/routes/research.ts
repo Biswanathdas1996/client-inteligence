@@ -119,7 +119,7 @@ router.post("/research", async (req, res) => {
       })
     : defaultOpenai;
 
-  const model = pwcModelOverride || "gpt-5.4";
+  const model = pwcModelOverride || "gpt-4o";
 
   const kbBlock =
     input.knowledgeBase && input.knowledgeBase.length > 0
