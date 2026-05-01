@@ -8,3 +8,99 @@
 export interface HealthStatus {
   status: string;
 }
+
+export interface KbSolution {
+  name?: string;
+  capability?: string;
+  industry?: string;
+  useCase?: string;
+  valueProposition?: string;
+}
+
+export interface ResearchRequest {
+  /** @minLength 1 */
+  companyName: string;
+  /** @minLength 1 */
+  country: string;
+  /** Buyer persona (e.g. CFO, COO, CIO, CRO) */
+  persona?: string;
+  /** @minItems 1 */
+  topics: string[];
+  /** Optional rows from the AI Solutions Knowledge Base (Excel) */
+  knowledgeBase?: KbSolution[];
+}
+
+export interface PeerCompany {
+  name: string;
+  rationale: string;
+  revenueGrowth?: string;
+  margin?: string;
+  strength?: string;
+  weakness?: string;
+}
+
+export interface TopicFinding {
+  topic: string;
+  summary: string;
+  signals: string[];
+}
+
+export interface PainPoint {
+  title: string;
+  description: string;
+  evidence: string;
+  persona: string;
+  businessFunction: string;
+}
+
+export type AiSolutionSource =
+  (typeof AiSolutionSource)[keyof typeof AiSolutionSource];
+
+export const AiSolutionSource = {
+  knowledge_base: "knowledge_base",
+  external: "external",
+} as const;
+
+export interface AiSolution {
+  name: string;
+  source: AiSolutionSource;
+  problem: string;
+  howAiHelps: string;
+  businessImpact: string;
+  persona: string;
+  painPointTitle: string;
+}
+
+export interface FinancialMetric {
+  label: string;
+  value: string;
+  trend?: string;
+}
+
+export interface CompanySnapshot {
+  description: string;
+  revenueStreams: string[];
+  financialMetrics: FinancialMetric[];
+  strategicInitiatives: string[];
+}
+
+export interface Mapping {
+  painPoint: string;
+  solution: string;
+  businessValue: string;
+}
+
+export interface ResearchReport {
+  companyName: string;
+  country: string;
+  persona?: string;
+  generatedAt: string;
+  executiveSummary: string;
+  companySnapshot: CompanySnapshot;
+  peers: PeerCompany[];
+  topicFindings: TopicFinding[];
+  painPoints: PainPoint[];
+  solutions: AiSolution[];
+  mapping: Mapping[];
+  assumptions?: string[];
+}

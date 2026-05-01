@@ -6,4 +6,15 @@
  * OpenAPI spec version: 0.1.0
  */
 
+export * from "./aiSolution";
+export * from "./aiSolutionSource";
+export * from "./companySnapshot";
+export * from "./financialMetric";
 export * from "./healthStatus";
+export * from "./kbSolution";
+export * from "./mapping";
+export * from "./painPoint";
+export * from "./peerCompany";
+export * from "./researchReport";
+export * from "./researchRequest";
+export * from "./topicFinding";

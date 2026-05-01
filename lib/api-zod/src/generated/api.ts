@@ -8,9 +8,99 @@
 import * as zod from "zod";
 
 /**
- * Returns server health status
  * @summary Health check
  */
 export const HealthCheckResponse = zod.object({
   status: zod.string(),
+});
+
+/**
+ * @summary Generate company intelligence and pitch report
+ */
+
+export const GenerateResearchBody = zod.object({
+  companyName: zod.string().min(1),
+  country: zod.string().min(1),
+  persona: zod
+    .string()
+    .optional()
+    .describe("Buyer persona (e.g. CFO, COO, CIO, CRO)"),
+  topics: zod.array(zod.string()).min(1),
+  knowledgeBase: zod
+    .array(
+      zod.object({
+        name: zod.string().optional(),
+        capability: zod.string().optional(),
+        industry: zod.string().optional(),
+        useCase: zod.string().optional(),
+        valueProposition: zod.string().optional(),
+      }),
+    )
+    .optional()
+    .describe("Optional rows from the AI Solutions Knowledge Base (Excel)"),
+});
+
+export const GenerateResearchResponse = zod.object({
+  companyName: zod.string(),
+  country: zod.string(),
+  persona: zod.string().optional(),
+  generatedAt: zod.coerce.date(),
+  executiveSummary: zod.string(),
+  companySnapshot: zod.object({
+    description: zod.string(),
+    revenueStreams: zod.array(zod.string()),
+    financialMetrics: zod.array(
+      zod.object({
+        label: zod.string(),
+        value: zod.string(),
+        trend: zod.string().optional(),
+      }),
+    ),
+    strategicInitiatives: zod.array(zod.string()),
+  }),
+  peers: zod.array(
+    zod.object({
+      name: zod.string(),
+      rationale: zod.string(),
+      revenueGrowth: zod.string().optional(),
+      margin: zod.string().optional(),
+      strength: zod.string().optional(),
+      weakness: zod.string().optional(),
+    }),
+  ),
+  topicFindings: zod.array(
+    zod.object({
+      topic: zod.string(),
+      summary: zod.string(),
+      signals: zod.array(zod.string()),
+    }),
+  ),
+  painPoints: zod.array(
+    zod.object({
+      title: zod.string(),
+      description: zod.string(),
+      evidence: zod.string(),
+      persona: zod.string(),
+      businessFunction: zod.string(),
+    }),
+  ),
+  solutions: zod.array(
+    zod.object({
+      name: zod.string(),
+      source: zod.enum(["knowledge_base", "external"]),
+      problem: zod.string(),
+      howAiHelps: zod.string(),
+      businessImpact: zod.string(),
+      persona: zod.string(),
+      painPointTitle: zod.string(),
+    }),
+  ),
+  mapping: zod.array(
+    zod.object({
+      painPoint: zod.string(),
+      solution: zod.string(),
+      businessValue: zod.string(),
+    }),
+  ),
+  assumptions: zod.array(zod.string()).optional(),
 });

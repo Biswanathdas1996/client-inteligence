@@ -10,13 +10,14 @@ servers:
 tags:
   - name: health
     description: Health operations
+  - name: research
+    description: Client intelligence research
 paths:
   /healthz:
     get:
       operationId: healthCheck
       tags: [health]
       summary: Health check
-      description: Returns server health status
       responses:
         "200":
           description: Healthy
@@ -24,6 +25,24 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+  /research:
+    post:
+      operationId: generateResearch
+      tags: [research]
+      summary: Generate company intelligence and pitch report
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ResearchRequest"
+      responses:
+        "200":
+          description: Research report
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ResearchReport"
 components:
   schemas:
     HealthStatus:
@@ -31,6 +50,142 @@ components:
       properties:
         status:
           type: string
+      required: [status]
+    ResearchRequest:
+      type: object
+      required: [companyName, country, topics]
+      properties:
+        companyName:
+          type: string
+          minLength: 1
+        country:
+          type: string
+          minLength: 1
+        persona:
+          type: string
+          description: Buyer persona (e.g. CFO, COO, CIO, CRO)
+        topics:
+          type: array
+          items: { type: string }
+          minItems: 1
+        knowledgeBase:
+          type: array
+          description: Optional rows from the AI Solutions Knowledge Base (Excel)
+          items:
+            $ref: "#/components/schemas/KbSolution"
+    KbSolution:
+      type: object
+      properties:
+        name: { type: string }
+        capability: { type: string }
+        industry: { type: string }
+        useCase: { type: string }
+        valueProposition: { type: string }
+    PeerCompany:
+      type: object
+      required: [name, rationale]
+      properties:
+        name: { type: string }
+        rationale: { type: string }
+        revenueGrowth: { type: string }
+        margin: { type: string }
+        strength: { type: string }
+        weakness: { type: string }
+    TopicFinding:
+      type: object
+      required: [topic, summary, signals]
+      properties:
+        topic: { type: string }
+        summary: { type: string }
+        signals:
+          type: array
+          items: { type: string }
+    PainPoint:
+      type: object
+      required: [title, description, evidence, persona, businessFunction]
+      properties:
+        title: { type: string }
+        description: { type: string }
+        evidence: { type: string }
+        persona: { type: string }
+        businessFunction: { type: string }
+    AiSolution:
+      type: object
+      required: [name, source, problem, howAiHelps, businessImpact, persona, painPointTitle]
+      properties:
+        name: { type: string }
+        source:
+          type: string
+          enum: [knowledge_base, external]
+        problem: { type: string }
+        howAiHelps: { type: string }
+        businessImpact: { type: string }
+        persona: { type: string }
+        painPointTitle: { type: string }
+    FinancialMetric:
+      type: object
+      required: [label, value]
+      properties:
+        label: { type: string }
+        value: { type: string }
+        trend: { type: string }
+    CompanySnapshot:
+      type: object
+      required: [description, revenueStreams, financialMetrics, strategicInitiatives]
+      properties:
+        description: { type: string }
+        revenueStreams:
+          type: array
+          items: { type: string }
+        financialMetrics:
+          type: array
+          items: { $ref: "#/components/schemas/FinancialMetric" }
+        strategicInitiatives:
+          type: array
+          items: { type: string }
+    Mapping:
+      type: object
+      required: [painPoint, solution, businessValue]
+      properties:
+        painPoint: { type: string }
+        solution: { type: string }
+        businessValue: { type: string }
+    ResearchReport:
+      type: object
       required:
-        - status
-
+        - companyName
+        - country
+        - generatedAt
+        - executiveSummary
+        - companySnapshot
+        - peers
+        - topicFindings
+        - painPoints
+        - solutions
+        - mapping
+      properties:
+        companyName: { type: string }
+        country: { type: string }
+        persona: { type: string }
+        generatedAt: { type: string, format: date-time }
+        executiveSummary: { type: string }
+        companySnapshot:
+          $ref: "#/components/schemas/CompanySnapshot"
+        peers:
+          type: array
+          items: { $ref: "#/components/schemas/PeerCompany" }
+        topicFindings:
+          type: array
+          items: { $ref: "#/components/schemas/TopicFinding" }
+        painPoints:
+          type: array
+          items: { $ref: "#/components/schemas/PainPoint" }
+        solutions:
+          type: array
+          items: { $ref: "#/components/schemas/AiSolution" }
+        mapping:
+          type: array
+          items: { $ref: "#/components/schemas/Mapping" }
+        assumptions:
+          type: array
+          items: { type: string }

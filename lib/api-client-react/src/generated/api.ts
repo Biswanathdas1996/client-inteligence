@@ -5,18 +5,25 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import type {
+  MutationFunction,
   QueryFunction,
   QueryKey,
+  UseMutationOptions,
+  UseMutationResult,
   UseQueryOptions,
   UseQueryResult,
 } from "@tanstack/react-query";
 
-import type { HealthStatus } from "./api.schemas";
+import type {
+  HealthStatus,
+  ResearchReport,
+  ResearchRequest,
+} from "./api.schemas";
 
 import { customFetch } from "../custom-fetch";
-import type { ErrorType } from "../custom-fetch";
+import type { ErrorType, BodyType } from "../custom-fetch";
 
 type AwaitedInput<T> = PromiseLike<T> | T;
 
@@ -25,7 +32,6 @@ type Awaited<O> = O extends AwaitedInput<infer T> ? T : never;
 type SecondParameter<T extends (...args: never) => unknown> = Parameters<T>[1];
 
 /**
- * Returns server health status
  * @summary Health check
  */
 export const getHealthCheckUrl = () => {
@@ -99,3 +105,89 @@ export function useHealthCheck<
 
   return { ...query, queryKey: queryOptions.queryKey };
 }
+
+/**
+ * @summary Generate company intelligence and pitch report
+ */
+export const getGenerateResearchUrl = () => {
+  return `/api/research`;
+};
+
+export const generateResearch = async (
+  researchRequest: ResearchRequest,
+  options?: RequestInit,
+): Promise<ResearchReport> => {
+  return customFetch<ResearchReport>(getGenerateResearchUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(researchRequest),
+  });
+};
+
+export const getGenerateResearchMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof generateResearch>>,
+    TError,
+    { data: BodyType<ResearchRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof generateResearch>>,
+  TError,
+  { data: BodyType<ResearchRequest> },
+  TContext
+> => {
+  const mutationKey = ["generateResearch"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof generateResearch>>,
+    { data: BodyType<ResearchRequest> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return generateResearch(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type GenerateResearchMutationResult = NonNullable<
+  Awaited<ReturnType<typeof generateResearch>>
+>;
+export type GenerateResearchMutationBody = BodyType<ResearchRequest>;
+export type GenerateResearchMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Generate company intelligence and pitch report
+ */
+export const useGenerateResearch = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof generateResearch>>,
+    TError,
+    { data: BodyType<ResearchRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof generateResearch>>,
+  TError,
+  { data: BodyType<ResearchRequest> },
+  TContext
+> => {
+  return useMutation(getGenerateResearchMutationOptions(options));
+};
