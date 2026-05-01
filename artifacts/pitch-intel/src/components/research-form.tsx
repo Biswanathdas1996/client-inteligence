@@ -27,15 +27,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
-
-const TOPICS = [
-  "Claims", "Risk", "Underwriting", "Compliance", 
-  "Supply Chain", "Customer Experience", "Finance", 
-  "Operations", "Talent", "ESG"
-];
 
 const PERSONAS = ["CFO", "COO", "CIO", "CRO", "CEO", "Other"];
 
@@ -175,47 +168,25 @@ export function ResearchForm({ onSuccess }: ResearchFormProps) {
           <FormField
             control={form.control}
             name="topics"
-            render={() => (
+            render={({ field }) => (
               <FormItem>
-                <div className="mb-4">
-                  <FormLabel className="text-[#2D2D2D] font-semibold">Topics of Interest</FormLabel>
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  {TOPICS.map((item) => (
-                    <FormField
-                      key={item}
-                      control={form.control}
-                      name="topics"
-                      render={({ field }) => {
-                        return (
-                          <FormItem
-                            key={item}
-                            className="flex flex-row items-start space-x-3 space-y-0"
-                          >
-                            <FormControl>
-                              <Checkbox
-                                checked={field.value?.includes(item)}
-                                onCheckedChange={(checked) => {
-                                  return checked
-                                    ? field.onChange([...field.value, item])
-                                    : field.onChange(
-                                        field.value?.filter(
-                                          (value) => value !== item
-                                        )
-                                      )
-                                }}
-                                className="border-[#E5E5E5] data-[state=checked]:bg-[#DC6900] data-[state=checked]:border-[#DC6900] rounded-none"
-                              />
-                            </FormControl>
-                            <FormLabel className="text-sm font-normal cursor-pointer text-[#696969]">
-                              {item}
-                            </FormLabel>
-                          </FormItem>
-                        )
-                      }}
-                    />
-                  ))}
-                </div>
+                <FormLabel className="text-[#2D2D2D] font-semibold">Topics of Interest</FormLabel>
+                <FormControl>
+                  <Input
+                    placeholder="e.g. Claims, Underwriting, ESG"
+                    className="rounded-none border-[#E5E5E5] focus-visible:ring-[#DC6900]"
+                    value={field.value?.join(", ") ?? ""}
+                    onChange={(e) => {
+                      const raw = e.target.value;
+                      const parsed = raw
+                        .split(",")
+                        .map((t) => t.trim())
+                        .filter((t) => t.length > 0);
+                      field.onChange(parsed);
+                    }}
+                  />
+                </FormControl>
+                <p className="text-xs text-[#696969]">Separate multiple topics with commas.</p>
                 <FormMessage />
               </FormItem>
             )}
