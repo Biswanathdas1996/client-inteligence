@@ -9,7 +9,9 @@ import {
   RotateCcw,
   Save,
   ShieldCheck,
+  Zap,
 } from "lucide-react";
+
 import {
   CredentialSettings,
   clearSettings,
@@ -21,6 +23,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
+
+const PWC_DEFAULTS = {
+  pwcGenAiBaseUrl: "https://genai-sharedservice-americas.pwc.com",
+  pwcGenAiModel: "vertex_ai.gemini-2.5-flash-image",
+};
 
 interface SecretFieldProps {
   id: string;
@@ -230,27 +237,36 @@ export default function Settings() {
             </div>
 
             <div className="space-y-5">
+              <button
+                type="button"
+                onClick={() => update(PWC_DEFAULTS)}
+                className="inline-flex items-center gap-2 text-xs font-semibold text-[#DC6900] border border-[#DC6900]/30 bg-[#FFF7EE] px-3 py-1.5 hover:bg-[#FFE8CC] transition-colors"
+              >
+                <Zap className="h-3.5 w-3.5" />
+                Fill PwC Americas defaults
+              </button>
+
               <SecretField
                 id="pwc-key"
                 label="API Key"
-                placeholder="sk-pwc-..."
-                hint="Bearer token issued by the PwC Gen AI platform. Required to route inference through PwC-approved infrastructure."
+                placeholder="sk-..."
+                hint='Bearer token (and x-api-key) issued by the PwC Gen AI platform. The key must start with "sk-".'
                 value={form.pwcGenAiApiKey}
                 onChange={(v) => update({ pwcGenAiApiKey: v })}
               />
               <PlainField
                 id="pwc-base-url"
-                label="API Base URL (optional)"
+                label="API Base URL"
                 placeholder="https://genai-sharedservice-americas.pwc.com"
-                hint="OpenAI-compatible endpoint. Leave blank to use the PwC Americas shared service endpoint automatically."
+                hint='Base URL only — do not include "/chat/completions". Example: https://genai-sharedservice-americas.pwc.com'
                 value={form.pwcGenAiBaseUrl}
                 onChange={(v) => update({ pwcGenAiBaseUrl: v })}
               />
               <PlainField
                 id="pwc-model"
-                label="Model (optional)"
+                label="Model"
                 placeholder="vertex_ai.gemini-2.5-flash-image"
-                hint="Override the default model. Leave blank to use vertex_ai.gemini-2.5-flash-image automatically when a PwC API key is set."
+                hint="Model identifier available on the configured endpoint."
                 value={form.pwcGenAiModel}
                 onChange={(v) => update({ pwcGenAiModel: v })}
               />

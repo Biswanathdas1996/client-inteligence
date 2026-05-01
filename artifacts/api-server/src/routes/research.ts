@@ -63,6 +63,7 @@ async function fetchPerplexityContext(
       method: "POST",
       headers: {
         Authorization: `Bearer ${apiKey}`,
+        "x-api-key": `Bearer ${apiKey}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
@@ -102,7 +103,9 @@ async function fetchPerplexityContext(
 router.post("/research", async (req, res) => {
   const parsed = GenerateResearchBody.safeParse(req.body);
   if (!parsed.success) {
-    res.status(400).json({ error: "Invalid request", details: parsed.error.format() });
+    res
+      .status(400)
+      .json({ error: "Invalid request", details: parsed.error.format() });
     return;
   }
   const input = parsed.data;
@@ -115,22 +118,33 @@ router.post("/research", async (req, res) => {
   const PWC_DEFAULT_BASE_URL = "https://genai-sharedservice-americas.pwc.com";
   const PWC_DEFAULT_MODEL = "vertex_ai.gemini-2.5-flash-image";
 
-  const client: OpenAI = pwcKey
+  const usingPwc = !!pwcKey;
+  const resolvedBaseUrl = pwcBaseUrl || PWC_DEFAULT_BASE_URL;
+  const model = pwcModelOverride || (usingPwc ? PWC_DEFAULT_MODEL : "gpt-4o");
+
+  req.log.info(
+    {
+      usingPwc,
+      resolvedBaseUrl: usingPwc ? resolvedBaseUrl : "(replit-default)",
+      model,
+    },
+    "Research request starting",
+  );
+
+  const client: OpenAI = usingPwc
     ? new OpenAI({
         apiKey: pwcKey,
-        baseURL: pwcBaseUrl || PWC_DEFAULT_BASE_URL,
+        baseURL: resolvedBaseUrl,
         defaultHeaders: {
           "x-api-key": pwcKey,
         },
       })
     : defaultOpenai;
 
-  const model = pwcModelOverride || (pwcKey ? PWC_DEFAULT_MODEL : "gpt-4o");
-
   const kbBlock =
     input.knowledgeBase && input.knowledgeBase.length > 0
       ? `User-provided AI Solutions Knowledge Base (${input.knowledgeBase.length} rows):\n${JSON.stringify(input.knowledgeBase, null, 2)}`
-      : "No Knowledge Base was provided. Use industry-standard AI solution patterns and label all solutions as source=\"external\".";
+      : 'No Knowledge Base was provided. Use industry-standard AI solution patterns and label all solutions as source="external".';
 
   let liveResearchBlock = "No live web research was performed for this report.";
   if (perplexityKey) {

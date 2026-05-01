@@ -3,7 +3,8 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { FileUp, Loader2, Play, AlertCircle, CheckCircle2 } from "lucide-react";
 import { Link } from "wouter";
-import { useGenerateResearch, KbSolution } from "@workspace/api-client-react";
+import { useMutation } from "@tanstack/react-query";
+import { generateResearch, KbSolution } from "@workspace/api-client-react";
 import { parseKbFile } from "@/lib/file-parser";
 import { formSchema, FormValues } from "@/lib/schemas";
 import { buildCredentialHeaders } from "@/lib/settings";
@@ -39,8 +40,9 @@ interface ResearchFormProps {
 export function ResearchForm({ onSuccess }: ResearchFormProps) {
   const { toast } = useToast();
   const credStatus = useSettingsStatus();
-  const generateResearch = useGenerateResearch({
-    request: { headers: buildCredentialHeaders() },
+  const generateResearchMutation = useMutation({
+    mutationFn: (data: Parameters<typeof generateResearch>[0]) =>
+      generateResearch(data, { headers: buildCredentialHeaders() }),
   });
   
   const [kbSolutions, setKbSolutions] = useState<KbSolution[]>([]);
@@ -83,26 +85,30 @@ export function ResearchForm({ onSuccess }: ResearchFormProps) {
   };
 
   const onSubmit = (data: FormValues) => {
-    generateResearch.mutate({
-      data: {
+    generateResearchMutation.mutate(
+      {
         companyName: data.companyName,
         country: data.country,
         persona: data.persona || undefined,
         topics: data.topics,
         knowledgeBase: kbSolutions.length > 0 ? kbSolutions : undefined,
-      }
-    }, {
-      onSuccess: (report) => {
-        onSuccess(report);
       },
-      onError: (err) => {
-        toast({
-          title: "Generation Failed",
-          description: "An error occurred while generating the report. Please try again.",
-          variant: "destructive"
-        });
-      }
-    });
+      {
+        onSuccess: (report) => {
+          onSuccess(report);
+        },
+        onError: (err) => {
+          toast({
+            title: "Generation Failed",
+            description:
+              err instanceof Error
+                ? err.message
+                : "An error occurred while generating the report. Please verify your inputs and try again.",
+            variant: "destructive",
+          });
+        },
+      },
+    );
   };
 
   return (
@@ -203,7 +209,7 @@ export function ResearchForm({ onSuccess }: ResearchFormProps) {
               accept=".csv,.xlsx,.xls" 
               onChange={handleFileUpload}
               className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-              disabled={parsingFile || generateResearch.isPending}
+              disabled={parsingFile || generateResearchMutation.isPending}
             />
             {parsingFile ? (
               <div className="flex flex-col items-center text-[#696969]">
@@ -262,9 +268,9 @@ export function ResearchForm({ onSuccess }: ResearchFormProps) {
         <Button 
           type="submit" 
           className="w-full rounded-none bg-[#DC6900] hover:bg-[#c25d00] text-white h-12 font-bold tracking-wide mt-4"
-          disabled={generateResearch.isPending}
+          disabled={generateResearchMutation.isPending}
         >
-          {generateResearch.isPending ? (
+          {generateResearchMutation.isPending ? (
             <>
               <Loader2 className="mr-2 h-5 w-5 animate-spin" />
               Synthesizing Intelligence...
@@ -277,7 +283,7 @@ export function ResearchForm({ onSuccess }: ResearchFormProps) {
           )}
         </Button>
 
-        {generateResearch.isError && (
+        {generateResearchMutation.isError && (
           <Alert variant="destructive" className="rounded-none border-red-500 bg-red-50">
             <AlertCircle className="h-4 w-4" />
             <AlertTitle>Generation Failed</AlertTitle>
