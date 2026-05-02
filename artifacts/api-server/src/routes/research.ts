@@ -4,7 +4,7 @@ import {
   fetchPwCChatCompletion,
   resolvePwCCompletionsUrl,
 } from "../lib/chat-completions-fetch";
-import { validateAndStripDeadUrls } from "../lib/url-validation";
+import { verifyAllReportUrlsReturn2xx } from "../lib/url-validation";
 
 const router: IRouter = Router();
 
@@ -417,7 +417,7 @@ router.post("/research", async (req, res) => {
 
   const todayStr = todayIsoDate();
   let liveResearchBlock = "No live web research was performed for this report.";
-  let researchTier: PerplexityTier | "none" | "failed" = "none";
+  let researchTier: PerplexityTier | "none" = "none";
   if (perplexityKey) {
     const query = `Today's date is ${todayStr}. Provide the LATEST verifiable information about ${input.companyName} (${input.country}) relevant to a strategic consulting brief, prioritising sources published in roughly the last 12 months. Cover:
 1. Most recent financial performance — latest reported fiscal year AND latest quarter (revenue, growth %, profit/margin, guidance). State the reporting period explicitly.
@@ -451,15 +451,18 @@ For EVERY number, percentage, or named fact, attach the direct URL of the page t
       liveResearchBlock = `Live web research from Perplexity (tier: ${plex.tier}). ${tierNote}
 
 CRITICAL — SOURCE OF TRUTH FOR FACTS:
-The following bullets and every URL under "Sources:" are the authoritative fact base for this company, its peers as described here, and the requested topics. The report generator MUST treat them as overriding any prior model knowledge. MUST NOT add or change numbers, dates, or definitive claims beyond what is supported here. MUST NOT invent links — every citation for these facts MUST use URLs copied exactly from this block or from the Sources list. Unverifiable or missing items go in "assumptions" as gaps, not as fabricated data. The API validates URLs and strips dead links; prefer only URLs you are confident resolve.
+The following bullets and every URL under "Sources:" are the authoritative fact base for this company, its peers as described here, and the requested topics. The report generator MUST treat them as overriding any prior model knowledge. MUST NOT add or change numbers, dates, or definitive claims beyond what is supported here. MUST NOT invent links — every citation for these facts MUST use URLs copied exactly from this block or from the Sources list. Unverifiable or missing items go in "assumptions" as gaps, not as fabricated data. The API will not return the report unless every cited URL verifies as HTTP 2xx from the server; prefer URLs you are confident respond successfully.
 
 Perplexity findings:
 ${plex.text}${sources}`;
     } else {
-      researchTier = "failed";
       req.log.warn({ detail: plex.detail }, "Perplexity web research failed");
-      liveResearchBlock =
-        `Live web research via Perplexity failed (${plex.detail}). Rely on PwC Gen AI prior knowledge and state this in "assumptions".`;
+      res.status(503).json({
+        error:
+          "Report not generated: live web research via Perplexity failed. Check your Perplexity API key and try again.",
+        perplexityDetail: plex.detail,
+      });
+      return;
     }
   }
 
@@ -468,12 +471,12 @@ ${plex.text}${sources}`;
       ? 'NOTE: live-search tier was "broad" (strict allowlist returned thin results). It is acceptable to cite the broader-credible sources surfaced in the live-research block, with the "(broader-web)" tag.'
       : researchTier === "wide"
         ? 'NOTE: live-search tier was "wide" (recency filter was relaxed). Some cited pages may be older than 12 months — preserve the reporting period in the prose.'
-        : researchTier === "failed" || researchTier === "none"
+        : researchTier === "none"
           ? 'NOTE: no live-search context was available. Use prior knowledge, but still inline-link to the most authoritative public URL you can identify for each fact.'
           : 'NOTE: live-search tier was strict — all sources should be allowlist-grade.';
 
   const liveResearchLockIn =
-    researchTier === "failed" || researchTier === "none"
+    researchTier === "none"
       ? ""
       : `LIVE RESEARCH LOCK-IN: A Perplexity block is present above. For company financials, peer facts in that block, and topic signals covered there, you MUST derive content only from that block and its Sources URLs — no hallucinated figures, no alternate URLs for the same claims, no "helpful" padding from memory. ROI/solution benchmark links may still follow KB + tier rules if they are clearly separate.`;
 
@@ -549,21 +552,29 @@ Constraints:
       persona: input.persona ?? null,
     };
 
-    const { report: verifiedReport, stats: urlStats } =
-      await validateAndStripDeadUrls(finalReport);
-    if (urlStats.dead > 0) {
+    const urlGate = await verifyAllReportUrlsReturn2xx(finalReport);
+    if (!urlGate.ok) {
       req.log.warn(
-        { checked: urlStats.checked, dead: urlStats.dead, sample: urlStats.deadUrls.slice(0, 5) },
-        "Stripped dead URLs from generated report",
+        {
+          checked: urlGate.checked,
+          failureCount: urlGate.failures.length,
+          sample: urlGate.failures.slice(0, 8),
+        },
+        "Report withheld: not every cited URL returned HTTP 2xx",
       );
-    } else {
-      req.log.info(
-        { checked: urlStats.checked },
-        "All cited URLs verified",
-      );
+      res.status(422).json({
+        error:
+          "Report not returned: every cited URL must return HTTP 2xx. Regenerate or fix the failing links.",
+        urlCheckFailures: urlGate.failures,
+        checkedUrlCount: urlGate.checked,
+      });
+      return;
+    }
+    if (urlGate.checked > 0) {
+      req.log.info({ checked: urlGate.checked }, "All cited URLs returned HTTP 2xx");
     }
 
-    res.json(verifiedReport);
+    res.json(finalReport);
   } catch (err) {
     req.log.error({ err }, "Failed to generate research report");
     const message =

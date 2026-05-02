@@ -111,7 +111,7 @@ export default function Home() {
       {/* Right Panel: Report Canvas */}
       <div className={`flex-1 bg-[#FAFAFA] overflow-y-auto transition-all duration-500 ease-in-out ${report ? 'opacity-100 block' : 'opacity-0 hidden lg:block lg:opacity-100'} print:!block print:!opacity-100 print:!w-full print:!overflow-visible`}>
         {report ? (
-          <div className="p-6 md:p-10 lg:p-12 animate-in fade-in slide-in-from-bottom-8 duration-700 print:p-0">
+          <div className="px-3 py-4 sm:px-4 md:px-5 md:py-6 lg:px-5 lg:py-6 xl:px-6 animate-in fade-in slide-in-from-bottom-8 duration-700 print:p-0 w-full min-w-0">
             <ReportView report={report} />
           </div>
         ) : (

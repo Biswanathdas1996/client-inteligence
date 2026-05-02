@@ -2,14 +2,14 @@
  * Validates every HTTPS URL embedded in a generated research report.
  *
  * Gate used by POST /research: the API does not return the report JSON until
- * each unique cited URL returns HTTP 200 on verification (redirects followed;
- * final response status must be exactly 200).
+ * each unique cited URL returns a successful HTTP status after verification
+ * (redirects followed; final status must be 2xx, i.e. 200–299).
  *
  * Behaviour:
- * - HEAD first; if status is not 200, GET once (many hosts reject HEAD or
+ * - HEAD first; if status is not 2xx, GET once (many hosts reject HEAD or
  *   return misleading statuses).
- * - Success only if the final response status is exactly 200.
- * - Timeouts, DNS/TLS/network errors, and non-200 statuses are failures.
+ * - Success if the final response status is 200–299.
+ * - Up to 3 attempts per URL with short backoff on network errors or 502/503/504.
  */
 
 const INLINE_LINK_RE =
@@ -17,6 +17,8 @@ const INLINE_LINK_RE =
 
 const URL_TIMEOUT_MS = 8000;
 const MAX_CONCURRENCY = 8;
+const MAX_ATTEMPTS = 3;
+const RETRY_DELAY_MS = 400;
 
 const BOT_UA =
   "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36";
@@ -37,7 +39,20 @@ interface StrictCheckResult {
   reason: string;
 }
 
-async function checkStrictHttp200(url: string): Promise<StrictCheckResult> {
+function isHttp2xx(status: number): boolean {
+  return status >= 200 && status < 300;
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((r) => setTimeout(r, ms));
+}
+
+function shouldRetryStatus(status: number | null): boolean {
+  if (status == null) return true;
+  return status === 502 || status === 503 || status === 504;
+}
+
+async function checkUrlOnce(url: string): Promise<StrictCheckResult> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), URL_TIMEOUT_MS);
   try {
@@ -48,7 +63,7 @@ async function checkStrictHttp200(url: string): Promise<StrictCheckResult> {
       headers: { "User-Agent": BOT_UA, Accept: "*/*" },
     });
 
-    if (res.status !== 200) {
+    if (!isHttp2xx(res.status)) {
       res = await fetch(url, {
         method: "GET",
         redirect: "follow",
@@ -57,13 +72,13 @@ async function checkStrictHttp200(url: string): Promise<StrictCheckResult> {
       });
     }
 
-    if (res.status === 200) {
-      return { ok: true, status: 200, reason: "OK" };
+    if (isHttp2xx(res.status)) {
+      return { ok: true, status: res.status, reason: "OK" };
     }
     return {
       ok: false,
       status: res.status,
-      reason: `Expected HTTP 200, got ${res.status}`,
+      reason: `Expected HTTP 2xx, got ${res.status}`,
     };
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
@@ -79,7 +94,25 @@ async function checkStrictHttp200(url: string): Promise<StrictCheckResult> {
   }
 }
 
-async function checkAllStrict200(
+async function checkUrlWithRetries(url: string): Promise<StrictCheckResult> {
+  let last: StrictCheckResult = {
+    ok: false,
+    status: null,
+    reason: "No attempt",
+  };
+  for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+    last = await checkUrlOnce(url);
+    if (last.ok) return last;
+    if (attempt < MAX_ATTEMPTS && shouldRetryStatus(last.status)) {
+      await sleep(RETRY_DELAY_MS * attempt);
+      continue;
+    }
+    break;
+  }
+  return last;
+}
+
+async function checkAll2xx(
   urls: string[],
 ): Promise<Map<string, StrictCheckResult>> {
   const result = new Map<string, StrictCheckResult>();
@@ -90,7 +123,7 @@ async function checkAllStrict200(
       while (i < urls.length) {
         const idx = i++;
         const url = urls[idx];
-        const r = await checkStrictHttp200(url);
+        const r = await checkUrlWithRetries(url);
         result.set(url, r);
       }
     },
@@ -129,9 +162,9 @@ function isUrlField(key: string): boolean {
 }
 
 /**
- * Fails unless every extracted URL returns HTTP 200 (after redirects).
+ * Fails unless every extracted URL returns HTTP 2xx (after redirects).
  */
-export async function verifyAllReportUrlsReturn200(
+export async function verifyAllReportUrlsReturn2xx(
   report: Record<string, unknown>,
 ): Promise<VerifyReportUrlsResult> {
   const urls = new Set<string>();
@@ -141,7 +174,7 @@ export async function verifyAllReportUrlsReturn200(
     return { ok: true, checked: 0 };
   }
 
-  const outcomes = await checkAllStrict200(list);
+  const outcomes = await checkAll2xx(list);
   const failures: UrlCheckFailure[] = [];
   for (const url of list) {
     const r = outcomes.get(url)!;
