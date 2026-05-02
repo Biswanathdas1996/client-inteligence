@@ -26,7 +26,7 @@ import { useToast } from "@/hooks/use-toast";
 
 const PWC_DEFAULTS = {
   pwcGenAiBaseUrl: "https://genai-sharedservice-americas.pwc.com",
-  pwcGenAiModel: "vertex_ai.gemini-2.5-flash-image",
+  pwcGenAiModel: "vertex_ai.gemini-2.5-flash",
 };
 
 interface SecretFieldProps {
@@ -258,14 +258,14 @@ export default function Settings() {
                 id="pwc-base-url"
                 label="API Base URL"
                 placeholder="https://genai-sharedservice-americas.pwc.com"
-                hint='Base URL only — do not include "/chat/completions". Example: https://genai-sharedservice-americas.pwc.com'
+                hint='PwC endpoint is …/completions — use https://genai-sharedservice-americas.pwc.com (host only) or the full …/completions URL.'
                 value={form.pwcGenAiBaseUrl}
                 onChange={(v) => update({ pwcGenAiBaseUrl: v })}
               />
               <PlainField
                 id="pwc-model"
                 label="Model"
-                placeholder="vertex_ai.gemini-2.5-flash-image"
+                placeholder="vertex_ai.gemini-2.5-flash"
                 hint="Model identifier available on the configured endpoint."
                 value={form.pwcGenAiModel}
                 onChange={(v) => update({ pwcGenAiModel: v })}

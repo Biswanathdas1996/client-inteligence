@@ -10,4 +10,6 @@ export interface FinancialMetric {
   label: string;
   value: string;
   trend?: string;
+  /** Source URL for this financial metric */
+  sourceUrl?: string;
 }

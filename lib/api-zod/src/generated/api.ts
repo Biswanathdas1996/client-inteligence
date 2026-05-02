@@ -54,6 +54,10 @@ export const GenerateResearchResponse = zod.object({
         label: zod.string(),
         value: zod.string(),
         trend: zod.string().optional(),
+        sourceUrl: zod
+          .string()
+          .optional()
+          .describe("Source URL for this financial metric"),
       }),
     ),
     strategicInitiatives: zod.array(zod.string()),
@@ -66,13 +70,22 @@ export const GenerateResearchResponse = zod.object({
       margin: zod.string().optional(),
       strength: zod.string().optional(),
       weakness: zod.string().optional(),
+      sourceUrl: zod.string().optional().describe("Source URL for peer data"),
     }),
   ),
   topicFindings: zod.array(
     zod.object({
       topic: zod.string(),
       summary: zod.string(),
+      sourceUrl: zod
+        .string()
+        .optional()
+        .describe("Source URL for the topic finding summary"),
       signals: zod.array(zod.string()),
+      signalSources: zod
+        .array(zod.string())
+        .optional()
+        .describe("Source URLs parallel to each signal entry"),
     }),
   ),
   painPoints: zod.array(
@@ -80,6 +93,10 @@ export const GenerateResearchResponse = zod.object({
       title: zod.string(),
       description: zod.string(),
       evidence: zod.string(),
+      sourceUrl: zod
+        .string()
+        .optional()
+        .describe("Source URL backing the evidence"),
       persona: zod.string(),
       businessFunction: zod.string(),
     }),
@@ -93,6 +110,10 @@ export const GenerateResearchResponse = zod.object({
       businessImpact: zod.string(),
       persona: zod.string(),
       painPointTitle: zod.string(),
+      sourceUrl: zod
+        .string()
+        .optional()
+        .describe("Source URL for external solution reference"),
     }),
   ),
   mapping: zod.array(

@@ -288,7 +288,9 @@ export function ResearchForm({ onSuccess }: ResearchFormProps) {
             <AlertCircle className="h-4 w-4" />
             <AlertTitle>Generation Failed</AlertTitle>
             <AlertDescription>
-              An error occurred while generating the report. Please verify your inputs and try again.
+              {generateResearchMutation.error instanceof Error
+                ? generateResearchMutation.error.message
+                : "An error occurred while generating the report. Please verify your inputs and try again."}
             </AlertDescription>
           </Alert>
         )}

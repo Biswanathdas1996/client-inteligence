@@ -195,6 +195,16 @@
 }
 
 @media print {
+  html,
+  body {
+    height: auto !important;
+    overflow: visible !important;
+  }
+  #root {
+    height: auto !important;
+    min-height: 0 !important;
+    overflow: visible !important;
+  }
   body {
     background: white;
     color: black;
@@ -205,10 +215,17 @@
   .print-only {
     display: block !important;
   }
-  .page-break {
-    page-break-before: always;
+  h1,
+  h2,
+  h3 {
+    break-after: avoid;
+  }
+  p,
+  li {
+    orphans: 3;
+    widows: 3;
   }
   @page {
-    margin: 2cm;
+    margin: 1.25cm;
   }
 }

@@ -91,14 +91,20 @@ components:
         margin: { type: string }
         strength: { type: string }
         weakness: { type: string }
+        sourceUrl: { type: string, description: Source URL for peer data }
     TopicFinding:
       type: object
       required: [topic, summary, signals]
       properties:
         topic: { type: string }
         summary: { type: string }
+        sourceUrl: { type: string, description: Source URL for the topic finding summary }
         signals:
           type: array
+          items: { type: string }
+        signalSources:
+          type: array
+          description: Source URLs parallel to each signal entry
           items: { type: string }
     PainPoint:
       type: object
@@ -107,6 +113,7 @@ components:
         title: { type: string }
         description: { type: string }
         evidence: { type: string }
+        sourceUrl: { type: string, description: Source URL backing the evidence }
         persona: { type: string }
         businessFunction: { type: string }
     AiSolution:
@@ -122,6 +129,7 @@ components:
         businessImpact: { type: string }
         persona: { type: string }
         painPointTitle: { type: string }
+        sourceUrl: { type: string, description: Source URL for external solution reference }
     FinancialMetric:
       type: object
       required: [label, value]
@@ -129,6 +137,7 @@ components:
         label: { type: string }
         value: { type: string }
         trend: { type: string }
+        sourceUrl: { type: string, description: Source URL for this financial metric }
     CompanySnapshot:
       type: object
       required: [description, revenueStreams, financialMetrics, strategicInitiatives]

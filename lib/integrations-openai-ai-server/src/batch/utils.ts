@@ -10,12 +10,12 @@ import pRetry, { AbortError } from "p-retry";
  * USAGE:
  * ```typescript
  * import { batchProcess } from "@workspace/integrations-openai-ai-server/batch";
- * import { openai } from "@workspace/integrations-openai-ai-server";
+ * import { getOpenai } from "@workspace/integrations-openai-ai-server";
  *
  * const results = await batchProcess(
  *   artworks,
  *   async (artwork) => {
- *     const response = await openai.chat.completions.create({
+ *     const response = await getOpenai().chat.completions.create({
  *       model: "gpt-5.4",
  *       messages: [{ role: "user", content: `Categorize: ${artwork.name}` }],
  *       response_format: { type: "json_object" },

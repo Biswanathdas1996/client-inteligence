@@ -9,5 +9,9 @@
 export interface TopicFinding {
   topic: string;
   summary: string;
+  /** Source URL for the topic finding summary */
+  sourceUrl?: string;
   signals: string[];
+  /** Source URLs parallel to each signal entry */
+  signalSources?: string[];
 }

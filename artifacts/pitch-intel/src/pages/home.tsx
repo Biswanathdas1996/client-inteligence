@@ -18,7 +18,7 @@ export default function Home() {
   const showCollapseToggle = !!report;
 
   return (
-    <div className="relative flex flex-col lg:flex-row h-[calc(100vh-4rem)] overflow-hidden">
+    <div className="relative flex flex-col lg:flex-row h-[calc(100vh-4rem)] overflow-hidden print:!h-auto print:!max-h-none print:!min-h-0 print:!overflow-visible">
       {/* Left Panel: Input Brief */}
       <div
         className={`relative bg-white transition-all duration-500 ease-in-out z-10 shadow-[4px_0_24px_rgba(0,0,0,0.02)] print:hidden ${

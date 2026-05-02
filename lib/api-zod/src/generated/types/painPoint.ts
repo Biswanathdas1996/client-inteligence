@@ -10,6 +10,8 @@ export interface PainPoint {
   title: string;
   description: string;
   evidence: string;
+  /** Source URL backing the evidence */
+  sourceUrl?: string;
   persona: string;
   businessFunction: string;
 }

@@ -37,18 +37,26 @@ export interface PeerCompany {
   margin?: string;
   strength?: string;
   weakness?: string;
+  /** Source URL for peer data */
+  sourceUrl?: string;
 }
 
 export interface TopicFinding {
   topic: string;
   summary: string;
+  /** Source URL for the topic finding summary */
+  sourceUrl?: string;
   signals: string[];
+  /** Source URLs parallel to each signal entry */
+  signalSources?: string[];
 }
 
 export interface PainPoint {
   title: string;
   description: string;
   evidence: string;
+  /** Source URL backing the evidence */
+  sourceUrl?: string;
   persona: string;
   businessFunction: string;
 }
@@ -69,12 +77,16 @@ export interface AiSolution {
   businessImpact: string;
   persona: string;
   painPointTitle: string;
+  /** Source URL for external solution reference */
+  sourceUrl?: string;
 }
 
 export interface FinancialMetric {
   label: string;
   value: string;
   trend?: string;
+  /** Source URL for this financial metric */
+  sourceUrl?: string;
 }
 
 export interface CompanySnapshot {

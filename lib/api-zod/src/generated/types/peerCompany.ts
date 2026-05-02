@@ -13,4 +13,6 @@ export interface PeerCompany {
   margin?: string;
   strength?: string;
   weakness?: string;
+  /** Source URL for peer data */
+  sourceUrl?: string;
 }

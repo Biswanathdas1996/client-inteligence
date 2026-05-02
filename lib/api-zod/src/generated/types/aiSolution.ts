@@ -15,4 +15,6 @@ export interface AiSolution {
   businessImpact: string;
   persona: string;
   painPointTitle: string;
+  /** Source URL for external solution reference */
+  sourceUrl?: string;
 }
