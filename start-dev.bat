@@ -5,7 +5,7 @@ cd /d "%~dp0"
 REM Extend PATH for Explorer double-click (often missing fnm/nvm/vs tools that your terminal has)
 set "PATH=%ProgramFiles%\nodejs;%ProgramFiles(x86)%\nodejs;%USERPROFILE%\AppData\Roaming\npm;%LOCALAPPDATA%\fnm_multishells;%PATH%"
 
-REM ASCII title only — Unicode/em dash breaks cmd parsing with ". was unexpected at this time."
+REM ASCII only in REM lines (cmd encoding issues on some systems).
 title Client Intelligence - dev stack
 
 where pnpm.cmd >nul 2>nul
