@@ -10,6 +10,7 @@ import type { CompanySnapshot } from "./companySnapshot";
 import type { Mapping } from "./mapping";
 import type { PainPoint } from "./painPoint";
 import type { PeerCompany } from "./peerCompany";
+import type { PeerComparison } from "./peerComparison";
 import type { TopicFinding } from "./topicFinding";
 
 export interface ResearchReport {
@@ -20,6 +21,7 @@ export interface ResearchReport {
   executiveSummary: string;
   companySnapshot: CompanySnapshot;
   peers: PeerCompany[];
+  peerComparison?: PeerComparison;
   topicFindings: TopicFinding[];
   painPoints: PainPoint[];
   solutions: AiSolution[];

@@ -92,6 +92,55 @@ components:
         strength: { type: string }
         weakness: { type: string }
         sourceUrl: { type: string, description: Source URL for peer data }
+    PeerComparisonMetric:
+      type: object
+      description: |
+        One row in the company-vs-peer-average matrix. For insurers the
+        canonical metrics are: Combined ratio, Loss ratio, NWP growth,
+        Book size, Net profit. Every numeric value MUST be sourced inline.
+      required: [label, companyValue, peerAverage]
+      properties:
+        label: { type: string, description: "Metric name, e.g. 'Combined ratio', 'NWP growth'." }
+        unit: { type: string, description: "Unit hint for display, e.g. '%', '₹ Cr', '$M', 'pp'." }
+        companyValue:
+          type: string
+          description: |
+            The selected company's latest reported value for this metric, with
+            an inline Markdown link to the primary source (filing, IR page,
+            regulator return). Example: "[96.4%](https://...)".
+        peerAverage:
+          type: string
+          description: |
+            Average of the peer set listed under "peers", as a single value
+            with an inline Markdown link to the source / methodology page.
+            Example: "[101.2% (n=4 peers, FY25)](https://...)".
+        delta:
+          type: string
+          description: |
+            Optional one-line delta with direction (e.g. "-4.8 pp better"
+            or "+220 bps worse"). Sign convention should reflect whether
+            the company is above/below average.
+        interpretation:
+          type: string
+          description: One-line plain-English read of the gap (optional).
+    PeerComparison:
+      type: object
+      description: |
+        Side-by-side benchmarking of the selected company vs the average of
+        the peers listed in "peers[]" across the core industry KPIs. The
+        peer set MUST be the same companies named in "peers[]".
+      required: [metrics]
+      properties:
+        peerSetSummary:
+          type: string
+          description: |
+            One sentence naming the peer set used for the average and the
+            reporting period it spans. Inline source link required.
+            Example: "Peer set: [HDFC Life](https://...), [SBI Life](https://...),
+            [ICICI Pru Life](https://...), [Max Life](https://...) — FY25 disclosures."
+        metrics:
+          type: array
+          items: { $ref: "#/components/schemas/PeerComparisonMetric" }
     TopicFinding:
       type: object
       required: [topic, summary, signals]
@@ -130,6 +179,46 @@ components:
         persona: { type: string }
         painPointTitle: { type: string }
         sourceUrl: { type: string, description: Source URL for external solution reference }
+        roiCalculation:
+          $ref: "#/components/schemas/RoiCalculation"
+    RoiCalculation:
+      type: object
+      description: Worked ROI math for an AI solution — every input must be sourced.
+      required: [baseline, uplift, formula, annualValue]
+      properties:
+        baseline:
+          type: string
+          description: |
+            Current-state cost or volume the solution acts on, with the inline
+            Markdown link to the source. Example: "Acme processes ~[12M invoices/year](https://...) at a manual cost of [~$8.40 per invoice](https://...)."
+        uplift:
+          type: string
+          description: |
+            Quantitative improvement assumption (% time saved, % defect reduction,
+            % capacity unlocked, etc.) — must cite an industry benchmark source
+            inline. Example: "Generative-AI invoice automation typically delivers
+            [55-70% straight-through processing](https://...) per Gartner."
+        formula:
+          type: string
+          description: |
+            The actual arithmetic, written so a reader can audit it. Use plain
+            math notation. Example: "12,000,000 × $8.40 × 60% = $60.5M annual savings."
+        annualValue:
+          type: string
+          description: |
+            Headline annualised value (savings, revenue uplift, or risk reduction
+            in $/€/₹), with currency and period clearly stated. Example:
+            "≈ $60.5M / year in OpEx savings."
+        paybackPeriod:
+          type: string
+          description: |
+            Estimated payback window vs. implementation cost, with the cost
+            assumption sourced. Example: "Implementation ~[$5-7M](https://...)
+            → payback in 1-2 months."
+        assumptions:
+          type: array
+          description: Each assumption MUST contain an inline Markdown link to its source.
+          items: { type: string }
     FinancialMetric:
       type: object
       required: [label, value]
@@ -183,6 +272,8 @@ components:
         peers:
           type: array
           items: { $ref: "#/components/schemas/PeerCompany" }
+        peerComparison:
+          $ref: "#/components/schemas/PeerComparison"
         topicFindings:
           type: array
           items: { $ref: "#/components/schemas/TopicFinding" }

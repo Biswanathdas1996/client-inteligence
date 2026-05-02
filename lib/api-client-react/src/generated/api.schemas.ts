@@ -79,6 +79,19 @@ export interface AiSolution {
   painPointTitle: string;
   /** Source URL for external solution reference */
   sourceUrl?: string;
+  roiCalculation?: RoiCalculation;
+}
+
+/**
+ * Worked ROI math for an AI solution — every input must be sourced.
+ */
+export interface RoiCalculation {
+  baseline: string;
+  uplift: string;
+  formula: string;
+  annualValue: string;
+  paybackPeriod?: string;
+  assumptions?: string[];
 }
 
 export interface FinancialMetric {
@@ -102,6 +115,30 @@ export interface Mapping {
   businessValue: string;
 }
 
+/**
+ * One row in the company-vs-peer-average matrix. For insurers the canonical
+ * metrics are: Combined ratio, Loss ratio, NWP growth, Book size, Net profit.
+ * Every numeric value MUST be sourced inline.
+ */
+export interface PeerComparisonMetric {
+  label: string;
+  /** Unit hint for display, e.g. '%', '₹ Cr', '$M', 'pp'. */
+  unit?: string;
+  companyValue: string;
+  peerAverage: string;
+  delta?: string;
+  interpretation?: string;
+}
+
+/**
+ * Side-by-side benchmarking of the selected company vs the average of the
+ * peers listed in `peers[]` across the core industry KPIs.
+ */
+export interface PeerComparison {
+  peerSetSummary?: string;
+  metrics: PeerComparisonMetric[];
+}
+
 export interface ResearchReport {
   companyName: string;
   country: string;
@@ -110,6 +147,7 @@ export interface ResearchReport {
   executiveSummary: string;
   companySnapshot: CompanySnapshot;
   peers: PeerCompany[];
+  peerComparison?: PeerComparison;
   topicFindings: TopicFinding[];
   painPoints: PainPoint[];
   solutions: AiSolution[];

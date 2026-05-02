@@ -40,8 +40,11 @@ function SourceLink({ url }: { url?: string }) {
  */
 function RichText({ text, className }: { text?: string | null; className?: string }) {
   if (!text) return null;
-  // [label](url) — label has no unescaped ']' or newline; url has no ')' or whitespace.
-  const linkRe = /\[([^\]\n]+?)\]\((https?:\/\/[^\s)]+)\)/g;
+  // [label](url) with an optional trailing " (annotation)" inside the URL parens —
+  // the model sometimes writes [x](https://... (broader-web)) instead of putting
+  // the tag inside the label. Capture the annotation so it can be appended to
+  // the visible label rather than left as raw text.
+  const linkRe = /\[([^\]\n]+?)\]\((https?:\/\/[^\s)]+)(?:\s+\(([^)]+)\))?\)/g;
   const nodes: ReactNode[] = [];
   let lastIndex = 0;
   let match: RegExpExecArray | null;
@@ -50,7 +53,10 @@ function RichText({ text, className }: { text?: string | null; className?: strin
     if (match.index > lastIndex) {
       nodes.push(text.slice(lastIndex, match.index));
     }
-    const [, label, url] = match;
+    const [, label, url, annotation] = match;
+    const visible = annotation && !label.includes(annotation)
+      ? `${label} (${annotation})`
+      : label;
     nodes.push(
       <a
         key={key++}
@@ -60,7 +66,7 @@ function RichText({ text, className }: { text?: string | null; className?: strin
         className="font-medium text-[#DC6900] underline decoration-[#DC6900]/40 underline-offset-2 transition-colors hover:text-[#C45E05] hover:decoration-[#DC6900]"
         title={url}
       >
-        {label}
+        {visible}
       </a>,
     );
     lastIndex = match.index + match[0].length;
@@ -234,6 +240,80 @@ export function ReportView({ report }: { report: ResearchReport }) {
         {/* 3. Peer Landscape */}
         <section className="scroll-mt-20">
           <ReportSectionHeading index={3} title="Peer Landscape" />
+
+          {report.peerComparison && report.peerComparison.metrics.length > 0 && (
+            <div className="mb-6 overflow-hidden rounded-2xl border border-neutral-200/70 bg-white shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
+              <div className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1 border-b border-neutral-200/60 bg-gradient-to-b from-white to-neutral-50/60 px-5 py-4 md:px-6">
+                <div>
+                  <div className="text-[11px] font-semibold uppercase tracking-wider text-neutral-500">
+                    {report.companyName} vs peer average
+                  </div>
+                  {report.peerComparison.peerSetSummary && (
+                    <p className="mt-1 max-w-3xl text-[12px] leading-relaxed text-neutral-600">
+                      <RichText text={report.peerComparison.peerSetSummary} />
+                    </p>
+                  )}
+                </div>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full border-collapse text-left">
+                  <thead>
+                    <tr className="border-b border-neutral-200 bg-neutral-50/90">
+                      <th className="whitespace-nowrap px-5 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-neutral-500 md:px-6">
+                        Metric
+                      </th>
+                      <th className="whitespace-nowrap px-5 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-neutral-500 md:px-6">
+                        {report.companyName}
+                      </th>
+                      <th className="whitespace-nowrap px-5 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-neutral-500 md:px-6">
+                        Peer average
+                      </th>
+                      <th className="whitespace-nowrap px-5 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-neutral-500 md:px-6">
+                        Δ vs peers
+                      </th>
+                      <th className="hidden whitespace-nowrap px-5 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-neutral-500 md:table-cell md:px-6">
+                        Read
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-neutral-200/80">
+                    {report.peerComparison.metrics.map((m, i) => {
+                      const deltaTone = (() => {
+                        if (!m.delta) return "text-neutral-500";
+                        const lower = m.delta.toLowerCase();
+                        if (lower.includes("better") || lower.includes("ahead")) return "text-emerald-700";
+                        if (lower.includes("worse") || lower.includes("behind")) return "text-[#E0301E]";
+                        return "text-neutral-700";
+                      })();
+                      return (
+                        <tr key={i} className="transition-colors hover:bg-neutral-50/70">
+                          <td className="align-top px-5 py-3.5 text-sm font-semibold text-neutral-900 md:px-6">
+                            <div>{m.label}</div>
+                            {m.unit && (
+                              <div className="text-[11px] font-normal text-neutral-500">{m.unit}</div>
+                            )}
+                          </td>
+                          <td className="align-top px-5 py-3.5 text-right text-sm font-semibold tabular-nums text-neutral-900 md:px-6">
+                            <RichText text={m.companyValue} />
+                          </td>
+                          <td className="align-top px-5 py-3.5 text-right text-sm font-medium tabular-nums text-neutral-700 md:px-6">
+                            <RichText text={m.peerAverage} />
+                          </td>
+                          <td className={`align-top px-5 py-3.5 text-right text-sm font-medium tabular-nums md:px-6 ${deltaTone}`}>
+                            {m.delta ? <RichText text={m.delta} /> : "—"}
+                          </td>
+                          <td className="hidden align-top px-5 py-3.5 text-sm leading-relaxed text-neutral-600 md:table-cell md:px-6">
+                            {m.interpretation ? <RichText text={m.interpretation} /> : "—"}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
           <div className="overflow-hidden rounded-2xl border border-neutral-200/70 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
             <div className="overflow-x-auto">
               <table className="w-full border-collapse text-left">
@@ -478,6 +558,65 @@ export function ReportView({ report }: { report: ResearchReport }) {
                         </div>
                       </div>
                     </div>
+
+                    {solution?.roiCalculation && (
+                      <div className="mt-5 overflow-hidden rounded-xl border border-[#DC6900]/20 bg-gradient-to-br from-[#FFF8EF] to-white">
+                        <div className="flex items-center gap-2 border-b border-[#DC6900]/15 bg-[#FFF5EB]/60 px-5 py-3">
+                          <span className="inline-flex h-6 w-6 items-center justify-center rounded-md bg-[#DC6900]/10 text-[#DC6900]" aria-hidden>
+                            <TrendingUp className="h-3.5 w-3.5" />
+                          </span>
+                          <div className="text-[11px] font-semibold uppercase tracking-wider text-[#DC6900]">
+                            Potential impact — worked ROI
+                          </div>
+                          <div className="ml-auto truncate text-[13px] font-semibold text-neutral-900">
+                            <RichText text={solution.roiCalculation.annualValue} />
+                          </div>
+                        </div>
+                        <dl className="grid gap-x-6 gap-y-3 px-5 py-4 text-sm sm:grid-cols-[140px_1fr]">
+                          <dt className="text-[11px] font-semibold uppercase tracking-wider text-neutral-500">Baseline</dt>
+                          <dd className="leading-relaxed text-neutral-800">
+                            <RichText text={solution.roiCalculation.baseline} />
+                          </dd>
+
+                          <dt className="text-[11px] font-semibold uppercase tracking-wider text-neutral-500">AI uplift</dt>
+                          <dd className="leading-relaxed text-neutral-800">
+                            <RichText text={solution.roiCalculation.uplift} />
+                          </dd>
+
+                          <dt className="text-[11px] font-semibold uppercase tracking-wider text-neutral-500">Calculation</dt>
+                          <dd className="rounded-md bg-white/80 px-3 py-2 font-mono text-[13px] leading-relaxed text-neutral-900 ring-1 ring-neutral-200/70">
+                            <RichText text={solution.roiCalculation.formula} />
+                          </dd>
+
+                          {solution.roiCalculation.paybackPeriod && (
+                            <>
+                              <dt className="text-[11px] font-semibold uppercase tracking-wider text-neutral-500">Payback</dt>
+                              <dd className="leading-relaxed text-neutral-800">
+                                <RichText text={solution.roiCalculation.paybackPeriod} />
+                              </dd>
+                            </>
+                          )}
+                        </dl>
+
+                        {solution.roiCalculation.assumptions && solution.roiCalculation.assumptions.length > 0 && (
+                          <div className="border-t border-[#DC6900]/15 bg-white/60 px-5 py-3">
+                            <div className="mb-1.5 text-[10px] font-semibold uppercase tracking-wider text-neutral-500">
+                              Assumptions & sources
+                            </div>
+                            <ul className="space-y-1 text-[12px] leading-relaxed text-neutral-700">
+                              {solution.roiCalculation.assumptions.map((a, j) => (
+                                <li key={j} className="flex gap-2">
+                                  <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-[#DC6900]/50" aria-hidden />
+                                  <span>
+                                    <RichText text={a} />
+                                  </span>
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
                 </div>
               );

@@ -2,7 +2,15 @@ import { useState, useEffect } from "react";
 import { ResearchForm } from "@/components/research-form";
 import { ReportView } from "@/components/report-view";
 import { ResearchReport } from "@workspace/api-client-react";
-import { FileText, Info, ChevronLeft, ChevronRight } from "lucide-react";
+import {
+  FileText,
+  Info,
+  ChevronLeft,
+  ChevronRight,
+  Building2,
+  LineChart,
+  Library,
+} from "lucide-react";
 
 export default function Home() {
   const [report, setReport] = useState<ResearchReport | null>(null);
@@ -21,7 +29,7 @@ export default function Home() {
     <div className="relative flex flex-col lg:flex-row h-[calc(100vh-4rem)] overflow-hidden print:!h-auto print:!max-h-none print:!min-h-0 print:!overflow-visible">
       {/* Left Panel: Input Brief */}
       <div
-        className={`relative bg-white transition-all duration-500 ease-in-out z-10 shadow-[4px_0_24px_rgba(0,0,0,0.02)] print:hidden ${
+        className={`relative bg-white transition-all duration-500 ease-in-out z-10 shadow-[1px_0_0_rgb(235,235,235),12px_0_48px_rgba(45,45,45,0.04)] print:hidden ${
           report
             ? collapsed
               ? 'w-full lg:w-0 lg:shrink-0 overflow-hidden border-r-0'
@@ -30,14 +38,51 @@ export default function Home() {
         }`}
         aria-hidden={collapsed}
       >
-        <div className="p-8 md:p-10">
+        <div className="relative p-8 md:p-10 lg:p-12">
           {!report && (
-            <div className="mb-10">
-              <h1 className="text-3xl font-bold text-[#2D2D2D] tracking-tight mb-3">Client Intelligence</h1>
-              <p className="text-[#696969] leading-relaxed">
-                Synthesize market data, peer benchmarks, and proprietary PwC knowledge into an executive-ready strategic brief.
-              </p>
-            </div>
+            <header className="relative mb-12 pb-12 border-b border-[#EBEBEB]">
+              <div className="absolute left-0 top-2 bottom-14 w-[3px] rounded-full bg-gradient-to-b from-[#DC6900] via-[#EB8C00] to-[#DC6900]/30 hidden sm:block" aria-hidden />
+
+              <div className="sm:pl-5 space-y-6">
+                <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+                  <span className="inline-flex items-center rounded-full bg-[#FFF8F0] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-[#8B4510] ring-1 ring-[#DC6900]/15">
+                    Strategic briefing
+                  </span>
+                  <span className="text-xs text-[#969696]" aria-hidden>
+                    ·
+                  </span>
+                  <span className="text-[13px] text-[#696969]">
+                    Guided inputs · GenAI-enhanced synthesis
+                  </span>
+                </div>
+
+                <div className="space-y-4 max-w-xl">
+                  <h1 className="text-[1.875rem] sm:text-[2rem] lg:text-[2.125rem] font-semibold text-[#1F1F1F] tracking-[-0.02em] leading-[1.15]">
+                    Client Intelligence
+                  </h1>
+                  <p className="text-[15px] sm:text-base text-[#5C5C5C] leading-relaxed font-normal">
+                    Synthesize market context, peer benchmarks, and proprietary PwC perspective into an
+                    executive-ready narrative built for stakeholder conversations.
+                  </p>
+                </div>
+
+                <ul className="flex flex-col sm:flex-row sm:flex-wrap gap-2 pt-2 list-none">
+                  {[
+                    { icon: Building2, label: "Company & region" },
+                    { icon: LineChart, label: "Benchmarks & topics" },
+                    { icon: Library, label: "Your solution catalog" },
+                  ].map(({ icon: Icon, label }) => (
+                    <li
+                      key={label}
+                      className="inline-flex items-center gap-2 rounded-lg border border-[#EAEAEA] bg-[#FAFAFA]/80 px-3 py-2 text-[13px] text-[#474747]"
+                    >
+                      <Icon className="h-[15px] w-[15px] shrink-0 text-[#DC6900]" aria-hidden />
+                      {label}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </header>
           )}
 
           <ResearchForm onSuccess={setReport} />

@@ -6,6 +6,7 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { AiSolutionSource } from "./aiSolutionSource";
+import type { RoiCalculation } from "./roiCalculation";
 
 export interface AiSolution {
   name: string;
@@ -17,4 +18,5 @@ export interface AiSolution {
   painPointTitle: string;
   /** Source URL for external solution reference */
   sourceUrl?: string;
+  roiCalculation?: RoiCalculation;
 }

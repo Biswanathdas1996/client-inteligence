@@ -73,6 +73,24 @@ export const GenerateResearchResponse = zod.object({
       sourceUrl: zod.string().optional().describe("Source URL for peer data"),
     }),
   ),
+  peerComparison: zod
+    .object({
+      peerSetSummary: zod.string().optional(),
+      metrics: zod.array(
+        zod.object({
+          label: zod.string(),
+          unit: zod.string().optional(),
+          companyValue: zod.string(),
+          peerAverage: zod.string(),
+          delta: zod.string().optional(),
+          interpretation: zod.string().optional(),
+        }),
+      ),
+    })
+    .optional()
+    .describe(
+      "Side-by-side benchmarking of the selected company vs peer-set average across core KPIs",
+    ),
   topicFindings: zod.array(
     zod.object({
       topic: zod.string(),
@@ -114,6 +132,19 @@ export const GenerateResearchResponse = zod.object({
         .string()
         .optional()
         .describe("Source URL for external solution reference"),
+      roiCalculation: zod
+        .object({
+          baseline: zod.string(),
+          uplift: zod.string(),
+          formula: zod.string(),
+          annualValue: zod.string(),
+          paybackPeriod: zod.string().optional(),
+          assumptions: zod.array(zod.string()).optional(),
+        })
+        .optional()
+        .describe(
+          "Worked ROI math for this AI solution — every input must include an inline Markdown source link",
+        ),
     }),
   ),
   mapping: zod.array(

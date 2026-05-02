@@ -50,7 +50,8 @@ export function ResearchForm({ onSuccess }: ResearchFormProps) {
   const [parsingFile, setParsingFile] = useState(false);
 
   const form = useForm<FormValues>({
-    resolver: zodResolver(formSchema),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    resolver: zodResolver(formSchema as any),
     defaultValues: {
       companyName: "",
       country: "",
@@ -114,8 +115,13 @@ export function ResearchForm({ onSuccess }: ResearchFormProps) {
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-        <div className="space-y-4">
-          <h2 className="text-lg font-bold text-[#2D2D2D] border-b border-[#E5E5E5] pb-2">Client Context</h2>
+        <div className="space-y-5">
+          <div className="flex items-center gap-3">
+            <h2 className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[#696969] shrink-0">
+              Client context
+            </h2>
+            <div className="h-px flex-1 bg-gradient-to-r from-[#E8E8E8] via-[#E8E8E8] to-transparent" aria-hidden />
+          </div>
           
           <FormField
             control={form.control}
@@ -124,7 +130,11 @@ export function ResearchForm({ onSuccess }: ResearchFormProps) {
               <FormItem>
                 <FormLabel className="text-[#2D2D2D] font-semibold">Target Company</FormLabel>
                 <FormControl>
-                  <Input placeholder="e.g. Acme Corp" className="rounded-none border-[#E5E5E5] focus-visible:ring-[#DC6900]" {...field} />
+                  <Input
+                    placeholder="e.g. Acme Corp"
+                    className="h-11 rounded-md border-[#E3E3E3] shadow-sm focus-visible:border-[#DC6900]/50 focus-visible:ring-[#DC6900]"
+                    {...field}
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -138,7 +148,11 @@ export function ResearchForm({ onSuccess }: ResearchFormProps) {
               <FormItem>
                 <FormLabel className="text-[#2D2D2D] font-semibold">Geography</FormLabel>
                 <FormControl>
-                  <Input placeholder="e.g. United States" className="rounded-none border-[#E5E5E5] focus-visible:ring-[#DC6900]" {...field} />
+                  <Input
+                    placeholder="e.g. United States"
+                    className="h-11 rounded-md border-[#E3E3E3] shadow-sm focus-visible:border-[#DC6900]/50 focus-visible:ring-[#DC6900]"
+                    {...field}
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -153,11 +167,11 @@ export function ResearchForm({ onSuccess }: ResearchFormProps) {
                 <FormLabel className="text-[#2D2D2D] font-semibold">Buyer Persona (Optional)</FormLabel>
                 <Select onValueChange={field.onChange} defaultValue={field.value}>
                   <FormControl>
-                    <SelectTrigger className="rounded-none border-[#E5E5E5] focus:ring-[#DC6900]">
+                    <SelectTrigger className="h-11 rounded-md border-[#E3E3E3] shadow-sm focus:ring-[#DC6900]">
                       <SelectValue placeholder="Select persona" />
                     </SelectTrigger>
                   </FormControl>
-                  <SelectContent className="rounded-none border-[#E5E5E5]">
+                  <SelectContent className="rounded-lg border-[#E3E3E3] shadow-md">
                     {PERSONAS.map(p => (
                       <SelectItem key={p} value={p} className="focus:bg-[#FAFAFA] focus:text-[#DC6900]">{p}</SelectItem>
                     ))}
@@ -169,8 +183,13 @@ export function ResearchForm({ onSuccess }: ResearchFormProps) {
           />
         </div>
 
-        <div className="space-y-4">
-          <h2 className="text-lg font-bold text-[#2D2D2D] border-b border-[#E5E5E5] pb-2 mt-8">Strategic Focus</h2>
+        <div className="space-y-5 mt-10">
+          <div className="flex items-center gap-3">
+            <h2 className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[#696969] shrink-0">
+              Strategic focus
+            </h2>
+            <div className="h-px flex-1 bg-gradient-to-r from-[#E8E8E8] via-[#E8E8E8] to-transparent" aria-hidden />
+          </div>
           <FormField
             control={form.control}
             name="topics"
@@ -180,7 +199,7 @@ export function ResearchForm({ onSuccess }: ResearchFormProps) {
                 <FormControl>
                   <Input
                     placeholder="e.g. Claims, Underwriting, ESG"
-                    className="rounded-none border-[#E5E5E5] focus-visible:ring-[#DC6900]"
+                    className="h-11 rounded-md border-[#E3E3E3] shadow-sm focus-visible:border-[#DC6900]/50 focus-visible:ring-[#DC6900]"
                     value={field.value?.join(", ") ?? ""}
                     onChange={(e) => {
                       const raw = e.target.value;
@@ -199,11 +218,16 @@ export function ResearchForm({ onSuccess }: ResearchFormProps) {
           />
         </div>
 
-        <div className="space-y-4">
-          <h2 className="text-lg font-bold text-[#2D2D2D] border-b border-[#E5E5E5] pb-2 mt-8">Knowledge Base</h2>
+        <div className="space-y-5 mt-10">
+          <div className="flex items-center gap-3">
+            <h2 className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[#696969] shrink-0">
+              Knowledge base
+            </h2>
+            <div className="h-px flex-1 bg-gradient-to-r from-[#E8E8E8] via-[#E8E8E8] to-transparent" aria-hidden />
+          </div>
           <p className="text-sm text-[#696969]">Upload proprietary AI solutions (.csv or .xlsx) to map against generated pain points.</p>
           
-          <div className="border border-dashed border-[#E5E5E5] p-6 text-center bg-[#FAFAFA] relative hover:bg-[#F0F0F0] transition-colors cursor-pointer">
+          <div className="border border-dashed border-[#D8D8D8] rounded-lg p-8 text-center bg-gradient-to-b from-[#FBFBFB] to-[#F6F6F6] relative hover:border-[#DC6900]/35 hover:bg-[#FAFAFA] transition-all cursor-pointer shadow-sm">
             <input 
               type="file" 
               accept=".csv,.xlsx,.xls" 
@@ -231,7 +255,7 @@ export function ResearchForm({ onSuccess }: ResearchFormProps) {
           </div>
           
           {kbSolutions.length > 0 && (
-            <div className="bg-[#FAFAFA] border border-[#E5E5E5] p-3 text-xs text-[#696969]">
+            <div className="rounded-md bg-[#FAFAFA] border border-[#E8E8E8] p-4 text-xs text-[#696969]">
               <div className="font-semibold text-[#2D2D2D] mb-1">Detected Solutions Preview:</div>
               <ul className="list-disc pl-4 space-y-1">
                 {kbSolutions.slice(0, 3).map((sol, i) => (
@@ -246,7 +270,7 @@ export function ResearchForm({ onSuccess }: ResearchFormProps) {
         </div>
 
         {!credStatus.pwcGenAiConfigured && (
-          <div className="mt-8 border border-[#E5E5E5] bg-[#FAFAFA] p-4 text-xs text-[#696969] leading-relaxed">
+          <div className="mt-8 rounded-lg border border-[#E8E8E8] bg-[#FAFBFC] p-5 text-xs text-[#696969] leading-relaxed shadow-sm">
             <div className="flex items-center gap-2 text-[#2D2D2D] font-semibold mb-1">
               <AlertCircle className="h-4 w-4 text-[#DC6900]" />
               No PwC Gen AI key configured
@@ -267,7 +291,7 @@ export function ResearchForm({ onSuccess }: ResearchFormProps) {
 
         <Button 
           type="submit" 
-          className="w-full rounded-none bg-[#DC6900] hover:bg-[#c25d00] text-white h-12 font-bold tracking-wide mt-4"
+          className="w-full rounded-md bg-[#DC6900] hover:bg-[#c25d00] text-white h-12 text-[15px] font-semibold tracking-tight mt-6 shadow-md shadow-[#DC6900]/25"
           disabled={generateResearchMutation.isPending}
         >
           {generateResearchMutation.isPending ? (
@@ -284,7 +308,7 @@ export function ResearchForm({ onSuccess }: ResearchFormProps) {
         </Button>
 
         {generateResearchMutation.isError && (
-          <Alert variant="destructive" className="rounded-none border-red-500 bg-red-50">
+          <Alert variant="destructive" className="rounded-lg border-red-500/80 bg-red-50/90">
             <AlertCircle className="h-4 w-4" />
             <AlertTitle>Generation Failed</AlertTitle>
             <AlertDescription>
