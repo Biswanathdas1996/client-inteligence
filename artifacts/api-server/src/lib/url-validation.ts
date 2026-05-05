@@ -9,7 +9,8 @@
  * - HEAD first; if status is not 2xx, GET once (many hosts reject HEAD or
  *   return misleading statuses).
  * - Success if the final response status is 200–299.
- * - Up to 3 attempts per URL with short backoff on network errors or 502/503/504.
+ * - Up to 3 attempts per URL with short backoff on network errors, 429, 502/503/504.
+ * - After a minimal GET fails with 401/403/405, one browser-like GET is attempted.
  */
 
 const INLINE_LINK_RE =
@@ -22,6 +23,18 @@ const RETRY_DELAY_MS = 400;
 
 const BOT_UA =
   "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36";
+
+/** Some hosts return 403/401 to minimal bot requests but accept a browser-like document fetch. */
+const BROWSER_ACCEPT =
+  "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8";
+
+const browserLikeHeaders = (): Record<string, string> => ({
+  "User-Agent": BOT_UA,
+  Accept: BROWSER_ACCEPT,
+  "Accept-Language": "en-US,en;q=0.9",
+  "Cache-Control": "no-cache",
+  Pragma: "no-cache",
+});
 
 export interface UrlCheckFailure {
   url: string;
@@ -49,7 +62,12 @@ function sleep(ms: number): Promise<void> {
 
 function shouldRetryStatus(status: number | null): boolean {
   if (status == null) return true;
-  return status === 502 || status === 503 || status === 504;
+  return (
+    status === 429 ||
+    status === 502 ||
+    status === 503 ||
+    status === 504
+  );
 }
 
 async function checkUrlOnce(url: string): Promise<StrictCheckResult> {
@@ -75,6 +93,25 @@ async function checkUrlOnce(url: string): Promise<StrictCheckResult> {
     if (isHttp2xx(res.status)) {
       return { ok: true, status: res.status, reason: "OK" };
     }
+
+    // Paywalled / bot-managed sites sometimes block minimal fetches but allow a browser-like GET.
+    if (res.status === 401 || res.status === 403 || res.status === 405) {
+      const res2 = await fetch(url, {
+        method: "GET",
+        redirect: "follow",
+        signal: controller.signal,
+        headers: browserLikeHeaders(),
+      });
+      if (isHttp2xx(res2.status)) {
+        return { ok: true, status: res2.status, reason: "OK" };
+      }
+      return {
+        ok: false,
+        status: res2.status,
+        reason: `Expected HTTP 2xx, got ${res2.status}`,
+      };
+    }
+
     return {
       ok: false,
       status: res.status,

@@ -24,6 +24,9 @@ export interface ResearchRequest {
   country: string;
   /** Buyer persona (e.g. CFO, COO, CIO, CRO) */
   persona?: string;
+  /** Optional product or business line to scope the entire report against (live web research, peers, financials, topics, and AI solution mapping).
+   */
+  productLine?: string;
   /** @minItems 1 */
   topics: string[];
   /** Optional rows from the AI Solutions Knowledge Base (Excel) */
@@ -39,6 +42,52 @@ export interface PeerCompany {
   weakness?: string;
   /** Source URL for peer data */
   sourceUrl?: string;
+}
+
+/**
+ * One row in the company-vs-peer-average matrix. For insurers the
+canonical metrics are: Combined ratio, Loss ratio, NWP growth,
+Book size, Net profit. Every numeric value MUST be sourced inline.
+
+ */
+export interface PeerComparisonMetric {
+  /** Metric name, e.g. 'Combined ratio', 'NWP growth'. */
+  label: string;
+  /** Unit hint for display, e.g. '%', '₹ Cr', '$M', 'pp'. */
+  unit?: string;
+  /** The selected company's latest reported value for this metric, with
+an inline Markdown link to the primary source (filing, IR page,
+regulator return). Example: "[96.4%](https://...)".
+ */
+  companyValue: string;
+  /** Average of the peer set listed under "peers", as a single value
+with an inline Markdown link to the source / methodology page.
+Example: "[101.2% (n=4 peers, FY25)](https://...)".
+ */
+  peerAverage: string;
+  /** Optional one-line delta with direction (e.g. "-4.8 pp better"
+or "+220 bps worse"). Sign convention should reflect whether
+the company is above/below average.
+ */
+  delta?: string;
+  /** One-line plain-English read of the gap (optional). */
+  interpretation?: string;
+}
+
+/**
+ * Side-by-side benchmarking of the selected company vs the average of
+the peers listed in "peers[]" across the core industry KPIs. The
+peer set MUST be the same companies named in "peers[]".
+
+ */
+export interface PeerComparison {
+  /** One sentence naming the peer set used for the average and the
+reporting period it spans. Inline source link required.
+Example: "Peer set: [HDFC Life](https://...), [SBI Life](https://...),
+[ICICI Pru Life](https://...), [Max Life](https://...) — FY25 disclosures."
+ */
+  peerSetSummary?: string;
+  metrics: PeerComparisonMetric[];
 }
 
 export interface TopicFinding {
@@ -69,6 +118,38 @@ export const AiSolutionSource = {
   external: "external",
 } as const;
 
+/**
+ * Worked ROI math for an AI solution — every input must be sourced.
+ */
+export interface RoiCalculation {
+  /** Current-state cost or volume the solution acts on, with the inline
+Markdown link to the source. Example: "Acme processes ~[12M invoices/year](https://...) at a manual cost of [~$8.40 per invoice](https://...)."
+ */
+  baseline: string;
+  /** Quantitative improvement assumption (% time saved, % defect reduction,
+% capacity unlocked, etc.) — must cite an industry benchmark source
+inline. Example: "Generative-AI invoice automation typically delivers
+[55-70% straight-through processing](https://...) per Gartner."
+ */
+  uplift: string;
+  /** The actual arithmetic, written so a reader can audit it. Use plain
+math notation. Example: "12,000,000 × $8.40 × 60% = $60.5M annual savings."
+ */
+  formula: string;
+  /** Headline annualised value (savings, revenue uplift, or risk reduction
+in $/€/₹), with currency and period clearly stated. Example:
+"≈ $60.5M / year in OpEx savings."
+ */
+  annualValue: string;
+  /** Estimated payback window vs. implementation cost, with the cost
+assumption sourced. Example: "Implementation ~[$5-7M](https://...)
+→ payback in 1-2 months."
+ */
+  paybackPeriod?: string;
+  /** Each assumption MUST contain an inline Markdown link to its source. */
+  assumptions?: string[];
+}
+
 export interface AiSolution {
   name: string;
   source: AiSolutionSource;
@@ -80,18 +161,6 @@ export interface AiSolution {
   /** Source URL for external solution reference */
   sourceUrl?: string;
   roiCalculation?: RoiCalculation;
-}
-
-/**
- * Worked ROI math for an AI solution — every input must be sourced.
- */
-export interface RoiCalculation {
-  baseline: string;
-  uplift: string;
-  formula: string;
-  annualValue: string;
-  paybackPeriod?: string;
-  assumptions?: string[];
 }
 
 export interface FinancialMetric {
@@ -115,34 +184,12 @@ export interface Mapping {
   businessValue: string;
 }
 
-/**
- * One row in the company-vs-peer-average matrix. For insurers the canonical
- * metrics are: Combined ratio, Loss ratio, NWP growth, Book size, Net profit.
- * Every numeric value MUST be sourced inline.
- */
-export interface PeerComparisonMetric {
-  label: string;
-  /** Unit hint for display, e.g. '%', '₹ Cr', '$M', 'pp'. */
-  unit?: string;
-  companyValue: string;
-  peerAverage: string;
-  delta?: string;
-  interpretation?: string;
-}
-
-/**
- * Side-by-side benchmarking of the selected company vs the average of the
- * peers listed in `peers[]` across the core industry KPIs.
- */
-export interface PeerComparison {
-  peerSetSummary?: string;
-  metrics: PeerComparisonMetric[];
-}
-
 export interface ResearchReport {
   companyName: string;
   country: string;
   persona?: string;
+  /** When provided at generation time, the report is scoped to this product or business line only. */
+  productLine?: string;
   generatedAt: string;
   executiveSummary: string;
   companySnapshot: CompanySnapshot;

@@ -8,11 +8,17 @@
 import type { PeerComparisonMetric } from "./peerComparisonMetric";
 
 /**
- * Side-by-side benchmarking of the selected company vs the average of the
- * peers listed in "peers[]" across the core industry KPIs. The peer set MUST
- * be the same companies named in "peers[]".
+ * Side-by-side benchmarking of the selected company vs the average of
+the peers listed in "peers[]" across the core industry KPIs. The
+peer set MUST be the same companies named in "peers[]".
+
  */
 export interface PeerComparison {
+  /** One sentence naming the peer set used for the average and the
+reporting period it spans. Inline source link required.
+Example: "Peer set: [HDFC Life](https://...), [SBI Life](https://...),
+[ICICI Pru Life](https://...), [Max Life](https://...) — FY25 disclosures."
+ */
   peerSetSummary?: string;
   metrics: PeerComparisonMetric[];
 }

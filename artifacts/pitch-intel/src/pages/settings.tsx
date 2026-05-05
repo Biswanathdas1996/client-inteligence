@@ -258,7 +258,7 @@ export default function Settings() {
                 id="pwc-base-url"
                 label="API Base URL"
                 placeholder="https://genai-sharedservice-americas.pwc.com"
-                hint='PwC endpoint is …/completions — use https://genai-sharedservice-americas.pwc.com (host only) or the full …/completions URL.'
+                hint="PwC POST path is …/chat/completions — use the host only (e.g. https://genai-sharedservice-americas.pwc.com) or a full URL ending in /chat/completions."
                 value={form.pwcGenAiBaseUrl}
                 onChange={(v) => update({ pwcGenAiBaseUrl: v })}
               />

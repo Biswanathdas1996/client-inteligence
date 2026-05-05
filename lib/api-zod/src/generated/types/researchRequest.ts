@@ -14,6 +14,9 @@ export interface ResearchRequest {
   country: string;
   /** Buyer persona (e.g. CFO, COO, CIO, CRO) */
   persona?: string;
+  /** Optional product or business line to scope the entire report against (live web research, peers, financials, topics, and AI solution mapping).
+   */
+  productLine?: string;
   /** @minItems 1 */
   topics: string[];
   /** Optional rows from the AI Solutions Knowledge Base (Excel) */

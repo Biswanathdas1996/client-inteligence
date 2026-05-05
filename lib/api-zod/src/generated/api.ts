@@ -25,6 +25,12 @@ export const GenerateResearchBody = zod.object({
     .string()
     .optional()
     .describe("Buyer persona (e.g. CFO, COO, CIO, CRO)"),
+  productLine: zod
+    .string()
+    .optional()
+    .describe(
+      "Optional product or business line to scope the entire report against (live web research, peers, financials, topics, and AI solution mapping).\n",
+    ),
   topics: zod.array(zod.string()).min(1),
   knowledgeBase: zod
     .array(
@@ -44,6 +50,12 @@ export const GenerateResearchResponse = zod.object({
   companyName: zod.string(),
   country: zod.string(),
   persona: zod.string().optional(),
+  productLine: zod
+    .string()
+    .optional()
+    .describe(
+      "When provided at generation time, the report is scoped to this product or business line only.",
+    ),
   generatedAt: zod.coerce.date(),
   executiveSummary: zod.string(),
   companySnapshot: zod.object({
@@ -75,21 +87,51 @@ export const GenerateResearchResponse = zod.object({
   ),
   peerComparison: zod
     .object({
-      peerSetSummary: zod.string().optional(),
+      peerSetSummary: zod
+        .string()
+        .optional()
+        .describe(
+          'One sentence naming the peer set used for the average and the\nreporting period it spans. Inline source link required.\nExample: \"Peer set: [HDFC Life](https:\/\/...), [SBI Life](https:\/\/...),\n[ICICI Pru Life](https:\/\/...), [Max Life](https:\/\/...) — FY25 disclosures.\"\n',
+        ),
       metrics: zod.array(
-        zod.object({
-          label: zod.string(),
-          unit: zod.string().optional(),
-          companyValue: zod.string(),
-          peerAverage: zod.string(),
-          delta: zod.string().optional(),
-          interpretation: zod.string().optional(),
-        }),
+        zod
+          .object({
+            label: zod
+              .string()
+              .describe("Metric name, e.g. 'Combined ratio', 'NWP growth'."),
+            unit: zod
+              .string()
+              .optional()
+              .describe("Unit hint for display, e.g. '%', '₹ Cr', '$M', 'pp'."),
+            companyValue: zod
+              .string()
+              .describe(
+                'The selected company\'s latest reported value for this metric, with\nan inline Markdown link to the primary source (filing, IR page,\nregulator return). Example: \"[96.4%](https:\/\/...)\".\n',
+              ),
+            peerAverage: zod
+              .string()
+              .describe(
+                'Average of the peer set listed under \"peers\", as a single value\nwith an inline Markdown link to the source \/ methodology page.\nExample: \"[101.2% (n=4 peers, FY25)](https:\/\/...)\".\n',
+              ),
+            delta: zod
+              .string()
+              .optional()
+              .describe(
+                'Optional one-line delta with direction (e.g. \"-4.8 pp better\"\nor \"+220 bps worse\"). Sign convention should reflect whether\nthe company is above\/below average.\n',
+              ),
+            interpretation: zod
+              .string()
+              .optional()
+              .describe("One-line plain-English read of the gap (optional)."),
+          })
+          .describe(
+            "One row in the company-vs-peer-average matrix. For insurers the\ncanonical metrics are: Combined ratio, Loss ratio, NWP growth,\nBook size, Net profit. Every numeric value MUST be sourced inline.\n",
+          ),
       ),
     })
     .optional()
     .describe(
-      "Side-by-side benchmarking of the selected company vs peer-set average across core KPIs",
+      'Side-by-side benchmarking of the selected company vs the average of\nthe peers listed in \"peers[]\" across the core industry KPIs. The\npeer set MUST be the same companies named in \"peers[]\".\n',
     ),
   topicFindings: zod.array(
     zod.object({
@@ -134,16 +176,42 @@ export const GenerateResearchResponse = zod.object({
         .describe("Source URL for external solution reference"),
       roiCalculation: zod
         .object({
-          baseline: zod.string(),
-          uplift: zod.string(),
-          formula: zod.string(),
-          annualValue: zod.string(),
-          paybackPeriod: zod.string().optional(),
-          assumptions: zod.array(zod.string()).optional(),
+          baseline: zod
+            .string()
+            .describe(
+              'Current-state cost or volume the solution acts on, with the inline\nMarkdown link to the source. Example: \"Acme processes ~[12M invoices\/year](https:\/\/...) at a manual cost of [~$8.40 per invoice](https:\/\/...).\"\n',
+            ),
+          uplift: zod
+            .string()
+            .describe(
+              'Quantitative improvement assumption (% time saved, % defect reduction,\n% capacity unlocked, etc.) — must cite an industry benchmark source\ninline. Example: \"Generative-AI invoice automation typically delivers\n[55-70% straight-through processing](https:\/\/...) per Gartner.\"\n',
+            ),
+          formula: zod
+            .string()
+            .describe(
+              'The actual arithmetic, written so a reader can audit it. Use plain\nmath notation. Example: \"12,000,000 × $8.40 × 60% = $60.5M annual savings.\"\n',
+            ),
+          annualValue: zod
+            .string()
+            .describe(
+              'Headline annualised value (savings, revenue uplift, or risk reduction\nin $\/€\/₹), with currency and period clearly stated. Example:\n\"≈ $60.5M \/ year in OpEx savings.\"\n',
+            ),
+          paybackPeriod: zod
+            .string()
+            .optional()
+            .describe(
+              'Estimated payback window vs. implementation cost, with the cost\nassumption sourced. Example: \"Implementation ~[$5-7M](https:\/\/...)\n→ payback in 1-2 months.\"\n',
+            ),
+          assumptions: zod
+            .array(zod.string())
+            .optional()
+            .describe(
+              "Each assumption MUST contain an inline Markdown link to its source.",
+            ),
         })
         .optional()
         .describe(
-          "Worked ROI math for this AI solution — every input must include an inline Markdown source link",
+          "Worked ROI math for an AI solution — every input must be sourced.",
         ),
     }),
   ),

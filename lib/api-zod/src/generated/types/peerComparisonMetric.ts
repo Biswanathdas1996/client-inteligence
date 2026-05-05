@@ -7,16 +7,31 @@
  */
 
 /**
- * One row in the company-vs-peer-average matrix. For insurers the canonical
- * metrics are: Combined ratio, Loss ratio, NWP growth, Book size, Net profit.
- * Every numeric value MUST be sourced inline.
+ * One row in the company-vs-peer-average matrix. For insurers the
+canonical metrics are: Combined ratio, Loss ratio, NWP growth,
+Book size, Net profit. Every numeric value MUST be sourced inline.
+
  */
 export interface PeerComparisonMetric {
+  /** Metric name, e.g. 'Combined ratio', 'NWP growth'. */
   label: string;
   /** Unit hint for display, e.g. '%', '₹ Cr', '$M', 'pp'. */
   unit?: string;
+  /** The selected company's latest reported value for this metric, with
+an inline Markdown link to the primary source (filing, IR page,
+regulator return). Example: "[96.4%](https://...)".
+ */
   companyValue: string;
+  /** Average of the peer set listed under "peers", as a single value
+with an inline Markdown link to the source / methodology page.
+Example: "[101.2% (n=4 peers, FY25)](https://...)".
+ */
   peerAverage: string;
+  /** Optional one-line delta with direction (e.g. "-4.8 pp better"
+or "+220 bps worse"). Sign convention should reflect whether
+the company is above/below average.
+ */
   delta?: string;
+  /** One-line plain-English read of the gap (optional). */
   interpretation?: string;
 }

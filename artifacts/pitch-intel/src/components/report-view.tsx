@@ -11,6 +11,7 @@ import {
   TrendingUp,
   Database,
   BarChart3,
+  Layers,
 } from "lucide-react";
 import { ResearchReport } from "@workspace/api-client-react";
 import { Button } from "@/components/ui/button";
@@ -151,6 +152,24 @@ export function ReportView({ report }: { report: ResearchReport }) {
             </Button>
           </div>
         </div>
+
+        {report.productLine && (
+          <div
+            className="relative z-10 mt-6 rounded-xl border border-[#DC6900]/28 bg-gradient-to-r from-[#FFF8EF] to-[#FFFCF8] px-4 py-3.5 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.85)] md:px-5 print:mt-5 print:border-neutral-300 print:bg-neutral-50 print:shadow-none"
+            role="note"
+          >
+            <p className="flex flex-col gap-2 text-[13px] leading-snug text-neutral-800 sm:flex-row sm:items-start sm:gap-3">
+              <span className="inline-flex shrink-0 items-center gap-2 font-semibold text-[#C45E05]">
+                <Layers className="h-4 w-4 shrink-0" aria-hidden />
+                Product line scope
+              </span>
+              <span className="text-neutral-700">
+                This briefing—including live web research, peer comparison, financial figures discussed, topic findings, and AI solution recommendations—is scoped to{" "}
+                <strong className="font-semibold text-neutral-900">{report.productLine}</strong> only, not the full corporate group unless sources report only consolidated results (then see assumptions and prose caveats).
+              </span>
+            </p>
+          </div>
+        )}
       </div>
 
       <div className="relative isolate space-y-12 bg-gradient-to-b from-neutral-50/85 via-white to-neutral-50/50 px-5 py-10 md:space-y-14 md:px-9 md:py-12 xl:px-12 print:space-y-8 print:bg-white print:px-8 print:py-8 print:via-white print:to-white">

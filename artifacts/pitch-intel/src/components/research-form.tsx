@@ -5,6 +5,7 @@ import { FileUp, Loader2, Play, AlertCircle, CheckCircle2 } from "lucide-react";
 import { Link } from "wouter";
 import { useMutation } from "@tanstack/react-query";
 import { generateResearch, KbSolution } from "@workspace/api-client-react";
+import { ApiError } from "@workspace/api-client-react/custom-fetch";
 import { parseKbFile } from "@/lib/file-parser";
 import { formSchema, FormValues } from "@/lib/schemas";
 import { buildCredentialHeaders } from "@/lib/settings";
@@ -33,6 +34,33 @@ import { useToast } from "@/hooks/use-toast";
 
 const PERSONAS = ["CFO", "COO", "CIO", "CRO", "CEO", "Other"];
 
+interface UrlCheckFailureRow {
+  url: string;
+  status: number | null;
+  reason: string;
+}
+
+function getUrlCheckFailures(err: unknown): UrlCheckFailureRow[] | null {
+  if (!(err instanceof ApiError)) return null;
+  if (err.status !== 422 || err.data == null || typeof err.data !== "object") {
+    return null;
+  }
+  const raw = (err.data as Record<string, unknown>).urlCheckFailures;
+  if (!Array.isArray(raw)) return null;
+  const out: UrlCheckFailureRow[] = [];
+  for (const item of raw) {
+    if (item == null || typeof item !== "object") continue;
+    const row = item as Record<string, unknown>;
+    if (typeof row.url !== "string") continue;
+    out.push({
+      url: row.url,
+      status: typeof row.status === "number" ? row.status : null,
+      reason: typeof row.reason === "string" ? row.reason : "Check failed",
+    });
+  }
+  return out.length > 0 ? out : null;
+}
+
 interface ResearchFormProps {
   onSuccess: (data: any) => void;
 }
@@ -56,6 +84,7 @@ export function ResearchForm({ onSuccess }: ResearchFormProps) {
       companyName: "",
       country: "",
       persona: "",
+      productLine: "",
       topics: [],
     },
   });
@@ -91,6 +120,7 @@ export function ResearchForm({ onSuccess }: ResearchFormProps) {
         companyName: data.companyName,
         country: data.country,
         persona: data.persona || undefined,
+        productLine: data.productLine?.trim() || undefined,
         topics: data.topics,
         knowledgeBase: kbSolutions.length > 0 ? kbSolutions : undefined,
       },
@@ -177,6 +207,35 @@ export function ResearchForm({ onSuccess }: ResearchFormProps) {
                     ))}
                   </SelectContent>
                 </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
+
+        <div className="space-y-5 mt-10">
+          <div className="flex items-center gap-3">
+            <h2 className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[#696969] shrink-0">
+              Product line
+            </h2>
+            <div className="h-px flex-1 bg-gradient-to-r from-[#E8E8E8] via-[#E8E8E8] to-transparent" aria-hidden />
+          </div>
+          <FormField
+            control={form.control}
+            name="productLine"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel className="text-[#2D2D2D] font-semibold">Product line (Optional)</FormLabel>
+                <FormControl>
+                  <Input
+                    placeholder="e.g. Commercial P&C insurance, Cloud ERP, Retail banking"
+                    className="h-11 rounded-md border-[#E3E3E3] shadow-sm focus-visible:border-[#DC6900]/50 focus-visible:ring-[#DC6900]"
+                    {...field}
+                  />
+                </FormControl>
+                <p className="text-xs text-[#696969] leading-relaxed">
+                  When set, the generated report, live web search, peer comparison, AI solution mapping, financial discussion, and topic findings are scoped to this product line only. Leave blank for a whole-company view.
+                </p>
                 <FormMessage />
               </FormItem>
             )}
@@ -311,10 +370,45 @@ export function ResearchForm({ onSuccess }: ResearchFormProps) {
           <Alert variant="destructive" className="rounded-lg border-red-500/80 bg-red-50/90">
             <AlertCircle className="h-4 w-4" />
             <AlertTitle>Generation Failed</AlertTitle>
-            <AlertDescription>
-              {generateResearchMutation.error instanceof Error
-                ? generateResearchMutation.error.message
-                : "An error occurred while generating the report. Please verify your inputs and try again."}
+            <AlertDescription className="space-y-3">
+              <p>
+                {generateResearchMutation.error instanceof Error
+                  ? generateResearchMutation.error.message
+                  : "An error occurred while generating the report. Please verify your inputs and try again."}
+              </p>
+              {generateResearchMutation.error &&
+                (() => {
+                  const failures = getUrlCheckFailures(generateResearchMutation.error);
+                  if (!failures) return null;
+                  return (
+                    <div className="rounded-md border border-red-200 bg-white/80 p-3 text-left">
+                      <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-red-900/80">
+                        URLs that did not return HTTP 2xx ({failures.length})
+                      </p>
+                      <ul className="max-h-48 space-y-2 overflow-y-auto text-xs text-red-950/90">
+                        {failures.map((f) => (
+                          <li key={f.url} className="break-all">
+                            <a
+                              href={f.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="font-medium text-[#DC6900] underline underline-offset-2"
+                            >
+                              {f.url}
+                            </a>
+                            <span className="block text-red-800/90">
+                              {f.status != null ? `HTTP ${f.status}` : "No status"} · {f.reason}
+                            </span>
+                          </li>
+                        ))}
+                      </ul>
+                      <p className="mt-2 text-[11px] leading-snug text-red-900/75">
+                        These links are validated from the server (not your browser). Paywalls, bot blocking, or dead pages often fail. Try generating again, or ask your admin about{" "}
+                        <code className="rounded bg-red-100/80 px-1">RESEARCH_SKIP_URL_VERIFICATION</code> for local debugging only.
+                      </p>
+                    </div>
+                  );
+                })()}
             </AlertDescription>
           </Alert>
         )}

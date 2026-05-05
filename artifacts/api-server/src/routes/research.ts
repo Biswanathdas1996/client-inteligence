@@ -17,6 +17,7 @@ PERPLEXITY / LIVE WEB RESEARCH (WHEN THE USER PROMPT INCLUDES IT — NON-NEGOTIA
 - You MUST NOT invent, estimate, or infer specific numbers, percentages, dates, or named facts for those domains when the block does not supply them — write qualitative, careful prose instead, or state the gap in "assumptions", without fabricating data.
 - Every inline Markdown [text](url) link in the report that supports a Perplexity-covered fact MUST use a URL that verbatim appears in that Perplexity block or in its numbered Sources list (same scheme, path, and query string). Do not mint plausible-looking IR, SEC, or news URLs that were not returned by the live search.
 - KB rows, ROI benchmarks, and solution vendor pages may still use their own URLs when those sections are clearly separate from the Perplexity company dossier — but peer matrices, companySnapshot metrics, topicFindings tied to user topics, and pain-point evidence drawn from company news still depend on Perplexity URLs when the live block is present.
+- When the user prompt includes a PRODUCT LINE SCOPE block naming a specific product or business line, the entire JSON output — executive summary, companySnapshot, peers, peerComparison, topicFindings, painPoints, solutions (including KB picks), mapping, and financial discourse — must address ONLY that line of business. Peers must be chosen for comparability in that product category; group-level metrics may appear only when clearly labeled as consolidated and caveated.
 
 Operating principles:
 - Reason at PwC GenAI quality. Be precise, current, and business-oriented.
@@ -378,6 +379,7 @@ router.post("/research", async (req, res) => {
     return;
   }
   const input = parsed.data;
+  const productLine = input.productLine?.trim() || undefined;
 
   const pwcKey = firstHeader(req.headers["x-pwc-genai-key"]);
   const pwcBaseUrl = firstHeader(req.headers["x-pwc-genai-base-url"]);
@@ -412,18 +414,30 @@ router.post("/research", async (req, res) => {
 
   const kbBlock =
     input.knowledgeBase && input.knowledgeBase.length > 0
-      ? `User-provided AI Solutions Knowledge Base (${input.knowledgeBase.length} rows):\n${JSON.stringify(input.knowledgeBase, null, 2)}`
+      ? `User-provided AI Solutions Knowledge Base (${input.knowledgeBase.length} rows):\n${JSON.stringify(input.knowledgeBase, null, 2)}${
+          productLine
+            ? `\n\nWhen recommending KB rows, only use solutions that plausibly address pain points for the "${productLine}" product line / segment scope described in this request.`
+            : ""
+        }`
       : 'No Knowledge Base was provided. Use industry-standard AI solution patterns and label all solutions as source="external".';
 
   const todayStr = todayIsoDate();
   let liveResearchBlock = "No live web research was performed for this report.";
   let researchTier: PerplexityTier | "none" = "none";
   if (perplexityKey) {
-    const query = `Today's date is ${todayStr}. Provide the LATEST verifiable information about ${input.companyName} (${input.country}) relevant to a strategic consulting brief, prioritising sources published in roughly the last 12 months. Cover:
-1. Most recent financial performance — latest reported fiscal year AND latest quarter (revenue, growth %, profit/margin, guidance). State the reporting period explicitly.
-2. Strategic initiatives, M&A, restructurings, leadership changes from the last 6-12 months.
-3. Key direct peers/competitors in ${input.country} with their LATEST size and positioning notes.
-4. Recent signals related to: ${input.topics.join(", ")}.
+    const lineIntro = productLine
+      ? ` Focus EXCLUSIVELY on the "${productLine}" product line / business segment — not the whole group unless filings only report consolidated results (then say so explicitly).`
+      : "";
+    const lineCover = productLine
+      ? `
+0. Segment / product-line context for "${productLine}": segment revenue, margin, growth, market position, and initiative news when disclosed; named competitors in this product category in ${input.country}. If only group-level figures exist, cite them but state the limitation.
+`
+      : "";
+    const query = `Today's date is ${todayStr}. Provide the LATEST verifiable information about ${input.companyName} (${input.country})${lineIntro} relevant to a strategic consulting brief, prioritising sources published in roughly the last 12 months. Cover:${lineCover}
+1. Most recent financial performance — for the scoped product line / segment where disclosed (otherwise the closest applicable metrics). Latest reported fiscal year AND latest quarter where segment data exists; state the reporting period explicitly.
+2. Strategic initiatives, M&A, restructurings, leadership changes from the last 6-12 months that affect${productLine ? ` the "${productLine}" line or are clearly material to it` : " the company"}.
+3. Key direct peers/competitors${productLine ? ` in the same product category as "${productLine}"` : ""} in ${input.country} with their LATEST size and positioning notes.
+4. Recent signals related to: ${input.topics.join(", ")}${productLine ? ` — all interpreted for the "${productLine}" product line only` : ""}.
 For EVERY number, percentage, or named fact, attach the direct URL of the page that substantiates it (not a homepage). If a figure cannot be located via the strict allowlist, fall back to the broadest credible source available (still no Wikipedia / content farms / AI summaries) and clearly mark it as "(broader-web fallback)".`;
     const plex = await fetchPerplexityContext(perplexityKey, query);
     if (plex.ok) {
@@ -449,9 +463,9 @@ For EVERY number, percentage, or named fact, attach the direct URL of the page t
             ? "Strict-allowlist search was thin; results were widened to any credible business / regulator / industry source. Treat figures from non-allowlist domains as best-available."
             : "Both strict and broad searches were thin; recency filter was dropped. Some figures may pre-date the last 12 months — check the URL and the reporting period stated.";
       liveResearchBlock = `Live web research from Perplexity (tier: ${plex.tier}). ${tierNote}
-
+${productLine ? `\nSCOPE: Research was requested for the "${productLine}" product line / segment only — interpret every bullet below in that context.\n` : ""}
 CRITICAL — SOURCE OF TRUTH FOR FACTS:
-The following bullets and every URL under "Sources:" are the authoritative fact base for this company, its peers as described here, and the requested topics. The report generator MUST treat them as overriding any prior model knowledge. MUST NOT add or change numbers, dates, or definitive claims beyond what is supported here. MUST NOT invent links — every citation for these facts MUST use URLs copied exactly from this block or from the Sources list. Unverifiable or missing items go in "assumptions" as gaps, not as fabricated data. The API will not return the report unless every cited URL verifies as HTTP 2xx from the server; prefer URLs you are confident respond successfully.
+The following bullets and every URL under "Sources:" are the authoritative fact base for this company${productLine ? ` (within the "${productLine}" product-line scope)` : ""}, its peers as described here, and the requested topics. The report generator MUST treat them as overriding any prior model knowledge. MUST NOT add or change numbers, dates, or definitive claims beyond what is supported here. MUST NOT invent links — every citation for these facts MUST use URLs copied exactly from this block or from the Sources list. Unverifiable or missing items go in "assumptions" as gaps, not as fabricated data. The API will not return the report unless every cited URL verifies as HTTP 2xx from the server; prefer URLs you are confident respond successfully.
 
 Perplexity findings:
 ${plex.text}${sources}`;
@@ -480,6 +494,13 @@ ${plex.text}${sources}`;
       ? ""
       : `LIVE RESEARCH LOCK-IN: A Perplexity block is present above. For company financials, peer facts in that block, and topic signals covered there, you MUST derive content only from that block and its Sources URLs — no hallucinated figures, no alternate URLs for the same claims, no "helpful" padding from memory. ROI/solution benchmark links may still follow KB + tier rules if they are clearly separate.`;
 
+  const productLineScopeBlock = productLine
+    ? `PRODUCT LINE SCOPE (NON-NEGOTIABLE):
+The user scoped this entire brief to the "${productLine}" product line / business segment ONLY. Every section of the JSON — executiveSummary, companySnapshot (prefer segment / division metrics for this line; label any consolidated group figures clearly), peers and peerComparison (pick peers comparable in THIS product category; matrix KPIs must be meaningful for this line), topicFindings (each tied to user topics but through the lens of "${productLine}" only), painPoints, solutions (KB + external), roiCalculation, and mapping — must address ONLY "${productLine}". Web research above was executed with this scope. The executiveSummary MUST state clearly that analysis is limited to the "${productLine}" product line.
+
+`
+    : "";
+
   const userPrompt = `Generate a client intelligence and pitch report.
 
 Today's date: ${todayStr}. Treat this as "now" — every number, statistic and quote you produce must be the LATEST available as of this date, with the reporting period stated.
@@ -488,9 +509,9 @@ Inputs:
 - Company Name: ${input.companyName}
 - Country / Geography: ${input.country}
 - Buyer Persona: ${input.persona ?? "Not specified"}
-- Topics of Interest: ${input.topics.join(", ")}
+${productLine ? `- Product line / segment (scopes ENTIRE report, live research, peers, financials, topics, and solutions): ${productLine}\n` : ""}- Topics of Interest: ${input.topics.join(", ")}
 
-${liveResearchBlock}
+${productLineScopeBlock}${liveResearchBlock}
 
 ${kbBlock}
 
@@ -529,9 +550,10 @@ Constraints:
     });
 
     let report: unknown;
+    let jsonText: string;
     try {
       // Strip markdown code fences the model sometimes wraps around JSON
-      const jsonText = content
+      jsonText = content
         .replace(/^```(?:json)?\s*/i, "")
         .replace(/\s*```\s*$/, "")
         .trim();
@@ -544,34 +566,121 @@ Constraints:
       throw new Error("Model returned non-JSON output");
     }
 
-    const finalReport = {
+    const buildFinalReport = (r: unknown) => ({
       generatedAt: new Date().toISOString(),
-      ...(report as Record<string, unknown>),
+      ...(r as Record<string, unknown>),
       companyName: input.companyName,
       country: input.country,
       persona: input.persona ?? null,
-    };
+      productLine: productLine ?? null,
+    });
 
-    const urlGate = await verifyAllReportUrlsReturn2xx(finalReport);
-    if (!urlGate.ok) {
+    let finalReport = buildFinalReport(report);
+
+    const skipUrlCheck =
+      process.env.RESEARCH_SKIP_URL_VERIFICATION  === "1" ||
+      process.env.RESEARCH_SKIP_URL_VERIFICATION === "true";
+
+    if (skipUrlCheck) {
       req.log.warn(
-        {
-          checked: urlGate.checked,
-          failureCount: urlGate.failures.length,
-          sample: urlGate.failures.slice(0, 8),
-        },
-        "Report withheld: not every cited URL returned HTTP 2xx",
+        "RESEARCH_SKIP_URL_VERIFICATION is enabled — skipping cited URL HTTP 2xx verification (development only)",
       );
-      res.status(422).json({
-        error:
-          "Report not returned: every cited URL must return HTTP 2xx. Regenerate or fix the failing links.",
-        urlCheckFailures: urlGate.failures,
-        checkedUrlCount: urlGate.checked,
-      });
-      return;
-    }
-    if (urlGate.checked > 0) {
-      req.log.info({ checked: urlGate.checked }, "All cited URLs returned HTTP 2xx");
+    } else {
+      let urlGate = await verifyAllReportUrlsReturn2xx(finalReport);
+
+      if (!urlGate.ok) {
+        const firstPassFailures = urlGate.failures;
+        const failureLines = firstPassFailures
+          .map(
+            (f) =>
+              `- ${f.url} (${f.status != null ? `HTTP ${f.status}` : "no status"} — ${f.reason})`,
+          )
+          .join("\n");
+
+        const perplexityNote =
+          researchTier !== "none"
+            ? "For company snapshot, peers, topic findings, and pain-point evidence: replace each bad link with a URL copied verbatim from the \"Live web research from Perplexity\" block (including its numbered Sources list) in the original user message. Do not invent or guess replacement URLs."
+            : "Replace each bad link with a stable Tier-A deep link (SEC EDGAR, company IR/press, Reuters, Bloomberg, FT, WSJ) that resolves today. If no good URL exists for a claim, make the statement qualitative and note the gap in \"assumptions\"—do not keep a broken link.";
+
+        const repairUser = `Your previous report JSON failed automated URL verification. Every URL in the report must return HTTP 2xx when fetched by our server.
+
+Failed URLs:
+${failureLines}
+
+${perplexityNote}
+For solution rows and ROI benchmark citations: prefer sourceUrl values from the Knowledge Base JSON in the original instructions when present; otherwise use a live regulator or top-tier news article—not an old PDF path or vendor blog URL you are uncertain about.
+Return the COMPLETE corrected JSON with the same schema. Output JSON only—no markdown code fences, no commentary.`;
+
+        req.log.warn(
+          {
+            checked: urlGate.checked,
+            failureCount: firstPassFailures.length,
+          },
+          "Cited URL verification failed — running one automatic repair pass",
+        );
+
+        const repairContent = await fetchPwCChatCompletion({
+          baseUrl: resolvedBaseUrl,
+          apiKey: pwcKey,
+          model,
+          messages: [
+            ...messages,
+            { role: "assistant" as const, content: jsonText },
+            { role: "user" as const, content: repairUser },
+          ],
+          maxTokens: 8192,
+          temperature: 0.1,
+        });
+
+        try {
+          jsonText = repairContent
+            .replace(/^```(?:json)?\s*/i, "")
+            .replace(/\s*```\s*$/, "")
+            .trim();
+          report = JSON.parse(jsonText);
+        } catch {
+          req.log.warn(
+            { contentPreview: repairContent.slice(0, 500) },
+            "Model returned non-JSON on URL repair pass",
+          );
+          res.status(422).json({
+            error:
+              "Cited URLs failed verification and the automatic repair pass did not return valid JSON. Regenerate the report.",
+            urlCheckFailures: firstPassFailures,
+            checkedUrlCount: urlGate.checked,
+          });
+          return;
+        }
+
+        finalReport = buildFinalReport(report);
+        urlGate = await verifyAllReportUrlsReturn2xx(finalReport);
+
+        if (!urlGate.ok) {
+          req.log.warn(
+            {
+              checked: urlGate.checked,
+              failureCount: urlGate.failures.length,
+              sample: urlGate.failures.slice(0, 8),
+            },
+            "Report withheld after URL repair pass: not every cited URL returned HTTP 2xx",
+          );
+          res.status(422).json({
+            error:
+              "Report not returned: every cited URL must return HTTP 2xx. One automatic link repair was attempted; regenerate or narrow sources.",
+            urlCheckFailures: urlGate.failures,
+            checkedUrlCount: urlGate.checked,
+            urlCheckFailuresBeforeRepair: firstPassFailures,
+          });
+          return;
+        }
+
+        req.log.info(
+          { checked: urlGate.checked },
+          "All cited URLs returned HTTP 2xx after automatic repair pass",
+        );
+      } else if (urlGate.checked > 0) {
+        req.log.info({ checked: urlGate.checked }, "All cited URLs returned HTTP 2xx");
+      }
     }
 
     res.json(finalReport);

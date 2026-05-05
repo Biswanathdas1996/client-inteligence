@@ -17,6 +17,8 @@ export interface ResearchReport {
   companyName: string;
   country: string;
   persona?: string;
+  /** When provided at generation time, the report is scoped to this product or business line only. */
+  productLine?: string;
   generatedAt: Date;
   executiveSummary: string;
   companySnapshot: CompanySnapshot;

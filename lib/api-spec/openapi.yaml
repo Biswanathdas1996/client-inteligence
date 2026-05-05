@@ -64,6 +64,11 @@ components:
         persona:
           type: string
           description: Buyer persona (e.g. CFO, COO, CIO, CRO)
+        productLine:
+          type: string
+          description: >
+            Optional product or business line to scope the entire report against
+            (live web research, peers, financials, topics, and AI solution mapping).
         topics:
           type: array
           items: { type: string }
@@ -265,6 +270,9 @@ components:
         companyName: { type: string }
         country: { type: string }
         persona: { type: string }
+        productLine:
+          type: string
+          description: When provided at generation time, the report is scoped to this product or business line only.
         generatedAt: { type: string, format: date-time }
         executiveSummary: { type: string }
         companySnapshot:

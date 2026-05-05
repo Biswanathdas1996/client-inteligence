@@ -10,10 +10,30 @@
  * Worked ROI math for an AI solution — every input must be sourced.
  */
 export interface RoiCalculation {
+  /** Current-state cost or volume the solution acts on, with the inline
+Markdown link to the source. Example: "Acme processes ~[12M invoices/year](https://...) at a manual cost of [~$8.40 per invoice](https://...)."
+ */
   baseline: string;
+  /** Quantitative improvement assumption (% time saved, % defect reduction,
+% capacity unlocked, etc.) — must cite an industry benchmark source
+inline. Example: "Generative-AI invoice automation typically delivers
+[55-70% straight-through processing](https://...) per Gartner."
+ */
   uplift: string;
+  /** The actual arithmetic, written so a reader can audit it. Use plain
+math notation. Example: "12,000,000 × $8.40 × 60% = $60.5M annual savings."
+ */
   formula: string;
+  /** Headline annualised value (savings, revenue uplift, or risk reduction
+in $/€/₹), with currency and period clearly stated. Example:
+"≈ $60.5M / year in OpEx savings."
+ */
   annualValue: string;
+  /** Estimated payback window vs. implementation cost, with the cost
+assumption sourced. Example: "Implementation ~[$5-7M](https://...)
+→ payback in 1-2 months."
+ */
   paybackPeriod?: string;
+  /** Each assumption MUST contain an inline Markdown link to its source. */
   assumptions?: string[];
 }
